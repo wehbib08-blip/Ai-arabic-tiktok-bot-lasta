@@ -1,102 +1,251 @@
-1<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI بالعربي</title>
+  <title>AI بالعربي 🤖</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       font-family: Arial, sans-serif;
-      background: #f7f7f7;
+      background: #f5f6fa;
       color: #222;
-      text-align: center;
     }
 
     header {
       background: #111;
       color: white;
-      padding: 60px 20px;
+      text-align: center;
+      padding: 45px 20px;
     }
 
-    h1 {
-      font-size: 42px;
-      margin-bottom: 15px;
+    header h1 {
+      font-size: 38px;
+      margin: 0 0 12px;
     }
 
-    p {
-      font-size: 20px;
+    header p {
+      font-size: 18px;
+      margin: 0;
       line-height: 1.8;
     }
 
     .container {
       max-width: 800px;
       margin: auto;
-      padding: 50px 20px;
+      padding: 30px 20px;
     }
 
     .card {
       background: white;
-      padding: 30px;
-      margin: 20px 0;
-      border-radius: 15px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      padding: 25px;
+      margin-bottom: 20px;
+      border-radius: 18px;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.08);
     }
 
-    a {
-      color: #111;
-      text-decoration: none;
-      margin: 0 10px;
+    h2 {
+      margin-top: 0;
+    }
+
+    label {
+      display: block;
+      margin: 15px 0 8px;
+      font-weight: bold;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      font-size: 16px;
+      font-family: inherit;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      border: 0;
+      border-radius: 12px;
+      background: #111;
+      color: white;
+      font-size: 17px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .steps {
+      display: grid;
+      gap: 12px;
+    }
+
+    .step {
+      padding: 15px;
+      background: #f1f1f1;
+      border-radius: 12px;
+      font-size: 16px;
     }
 
     footer {
-      padding: 30px;
+      text-align: center;
       background: #111;
       color: white;
+      padding: 25px;
+      margin-top: 30px;
     }
 
     footer a {
       color: white;
+      margin: 0 8px;
     }
   </style>
 </head>
 
 <body>
 
-  <header>
-    <h1>AI بالعربي</h1>
-    <p>محتوى عربي تعليمي وترفيهي حول الذكاء الاصطناعي وأدواته واستخداماته اليومية.</p>
-  </header>
+<header>
+  <h1>🤖 AI بالعربي</h1>
+  <p>
+    أنشئ فيديوهات عربية تعليمية وترفيهية بالذكاء الاصطناعي
+    وجهّزها للنشر على TikTok.
+  </p>
+</header>
 
-  <div class="container">
+<div class="container">
 
-    <div class="card">
-      <h2>🤖 عن AI بالعربي</h2>
-      <p>
-        نقدم محتوى عربي مبسط حول الذكاء الاصطناعي،
-        الأدوات الجديدة، الحيل المفيدة، الصور والفيديو،
-        والإستخدامات العملية للذكاء الاصطناعي.
-      </p>
-    </div>
+  <div class="card">
+    <h2>📱 ربط حساب TikTok</h2>
 
-    <div class="card">
-      <h2>📱 المحتوى</h2>
-      <p>
-        محتوى تعليمي وترفيهي باللغة العربية يساعد المستخدمين
-        على اكتشاف وفهم تقنيات الذكاء الاصطناعي.
-      </p>
-    </div>
+    <p>
+      اربط حساب TikTok الخاص بك للانتقال إلى خطوة تجهيز ونشر المحتوى.
+    </p>
 
+    <button id="tiktokButton">
+      🔐 Connect TikTok
+    </button>
+
+    <p id="connectionStatus"></p>
   </div>
 
-  <footer>
-    <a href="privacy.html">Privacy Policy</a>
-    |
-    <a href="terms.html">Terms of Service</a>
 
-    <p>© 2026 AI بالعربي</p>
-  </footer>
+  <div class="card">
+    <h2>🎬 إنشاء فيديو جديد</h2>
+
+    <label>موضوع الفيديو</label>
+
+    <input
+      type="text"
+      id="topic"
+      placeholder="مثلاً: 5 أدوات AI ستوفر عليك ساعات"
+    >
+
+    <label>نوع المحتوى</label>
+
+    <select id="contentType">
+      <option>معلومة عن الذكاء الاصطناعي</option>
+      <option>أداة AI مفيدة</option>
+      <option>مقارنة بين أدوات</option>
+      <option>أخبار الذكاء الاصطناعي</option>
+      <option>حيل ونصائح</option>
+      <option>الذكاء الاصطناعي والعمل</option>
+      <option>صور وفيديو بالذكاء الاصطناعي</option>
+      <option>ترفيه</option>
+    </select>
+
+    <label>مدة الفيديو</label>
+
+    <select id="duration">
+      <option>60 ثانية</option>
+      <option>75 ثانية</option>
+      <option>90 ثانية</option>
+    </select>
+
+    <button id="generateButton">
+      ✨ تجهيز الفيديو
+    </button>
+  </div>
+
+
+  <div class="card">
+    <h2>⚙️ مراحل إنشاء الفيديو</h2>
+
+    <div class="steps">
+      <div class="step">1️⃣ اختيار الموضوع</div>
+      <div class="step">2️⃣ كتابة السكريبت بالعربية</div>
+      <div class="step">3️⃣ توليد الصوت</div>
+      <div class="step">4️⃣ إنشاء وتجميع المشاهد</div>
+      <div class="step">5️⃣ إضافة الترجمة</div>
+      <div class="step">6️⃣ معاينة الفيديو</div>
+      <div class="step">7️⃣ النشر على TikTok</div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <h2>👀 معاينة</h2>
+
+    <p id="preview">
+      لم يتم إنشاء فيديو بعد.
+    </p>
+  </div>
+
+</div>
+
+<footer>
+  <a href="privacy.html">Privacy Policy</a>
+  |
+  <a href="terms.html">Terms of Service</a>
+
+  <p>© 2026 AI بالعربي</p>
+</footer>
+
+
+<script>
+
+  document.getElementById("tiktokButton").addEventListener("click", function() {
+
+    document.getElementById("connectionStatus").innerText =
+      "🔐 سيتم ربط حساب TikTok هنا بعد تفعيل Login Kit.";
+
+  });
+
+
+  document.getElementById("generateButton").addEventListener("click", function() {
+
+    const topic = document.getElementById("topic").value;
+    const type = document.getElementById("contentType").value;
+    const duration = document.getElementById("duration").value;
+
+    if (!topic) {
+      document.getElementById("preview").innerText =
+        "⚠️ اكتبي موضوع الفيديو أولاً.";
+      return;
+    }
+
+    document.getElementById("preview").innerText =
+      "🎬 تم تجهيز طلب الفيديو:\n\n" +
+      "الموضوع: " + topic + "\n" +
+      "النوع: " + type + "\n" +
+      "المدة: " + duration;
+
+  });
+
+</script>
 
 </body>
 </html>
