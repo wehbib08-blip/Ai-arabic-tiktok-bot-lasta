@@ -1,0 +1,136 @@
+{
+  "universe": {
+    "name": "عالم توتي",
+    "language": "Arabic",
+    "story_format": "independent social stories; continuity is optional",
+    "target_audience": "children and parents",
+    "tone": [
+      "warm",
+      "fun",
+      "human",
+      "age-appropriate",
+      "educational"
+    ]
+  },
+  "main_character": {
+    "name": "تالا",
+    "nickname": "توتي",
+    "age": 10,
+    "appearance": {
+      "hair": "chestnut brown",
+      "eyes": "large hazel eyes",
+      "skin": "fair",
+      "features": "very cute, soft, childlike facial features",
+      "clothing": "age-appropriate, modest, colorful, childlike"
+    },
+    "personality": [
+      "cheerful",
+      "kind",
+      "curious",
+      "loves life",
+      "loves reading books",
+      "likes helping her mother cook",
+      "sometimes afraid, jealous, angry, sad, or unsure",
+      "learns from experiences instead of always knowing the answer"
+    ],
+    "speech": "natural, simple Arabic suitable for a 10-year-old"
+  },
+  "family": [
+    {
+      "name": "ريم",
+      "role": "mother",
+      "age": "30s",
+      "traits": [
+        "loving",
+        "ambitious",
+        "works outside and inside the home",
+        "protective",
+        "wants her children to succeed academically",
+        "can unintentionally put pressure on them"
+      ]
+    },
+    {
+      "name": "عبدالله",
+      "role": "father",
+      "age": "30s",
+      "traits": [
+        "loving",
+        "ambitious",
+        "works outside the home",
+        "worries about bills and installments",
+        "likes playing with his children when home",
+        "can be tired or stressed"
+      ]
+    },
+    {
+      "name": "يزن",
+      "role": "brother",
+      "age": 8,
+      "traits": [
+        "impulsive",
+        "often rushes",
+        "loves video games",
+        "funny",
+        "kind",
+        "sensitive underneath"
+      ]
+    },
+    {
+      "name": "راما",
+      "role": "younger sister",
+      "age": 1.5,
+      "traits": [
+        "playful",
+        "needs supervision",
+        "loved by everyone",
+        "creates cute everyday situations"
+      ]
+    }
+  ],
+  "story_rules": {
+    "duration_seconds": {
+      "min": 60,
+      "max": 90
+    },
+    "structure": [
+      "hook",
+      "setup",
+      "emotional reaction",
+      "problem escalation",
+      "attempt or decision",
+      "consequence",
+      "learning",
+      "memorable ending"
+    ],
+    "topics": [
+      "family",
+      "school",
+      "friendship",
+      "bullying",
+      "self-confidence",
+      "emotions",
+      "peer pressure",
+      "academic pressure",
+      "siblings",
+      "internet safety",
+      "personal boundaries",
+      "asking trusted adults for help",
+      "funny everyday situations",
+      "childhood memories",
+      "dreams and future imagination"
+    ],
+    "family_principle": "Parents love their children but can make mistakes; children are not responsible for solving adult problems.",
+    "sensitive_topic_rules": [
+      "Keep content age-appropriate.",
+      "Do not show sexual or graphic details involving children.",
+      "Never blame a child for abuse, harassment, bullying, or danger.",
+      "For danger, prioritize getting away when possible and telling a trusted adult.",
+      "Do not make a child responsible for fixing adult relationships.",
+      "Do not invent medical, legal, or psychological claims."
+    ]
+  },
+  "visual_consistency": {
+    "instruction": "Preserve the same identity, facial features, hair color, eye color, age, and childlike proportions for recurring characters across scenes and videos.",
+    "reference_image": "reference/toti_family_reference.png"
+  }
+}
