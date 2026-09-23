@@ -89,6 +89,11 @@
       opacity: 0.9;
     }
 
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
     .steps {
       display: grid;
       gap: 12px;
@@ -99,6 +104,11 @@
       background: #f1f1f1;
       border-radius: 12px;
       font-size: 16px;
+    }
+
+    #preview {
+      white-space: pre-wrap;
+      line-height: 1.9;
     }
 
     footer {
@@ -142,7 +152,6 @@
     <p id="connectionStatus"></p>
   </div>
 
-
   <div class="card">
     <h2>🎬 إنشاء فيديو جديد</h2>
 
@@ -151,12 +160,13 @@
     <input
       type="text"
       id="topic"
-      placeholder="مثلاً: 5 أدوات AI ستوفر عليك ساعات"
+      placeholder="مثلاً: بنت جديدة بالمدرسة ما حدا عم يحكي معها"
     >
 
     <label>نوع المحتوى</label>
 
     <select id="contentType">
+      <option>قصة تالا وتوتي</option>
       <option>معلومة عن الذكاء الاصطناعي</option>
       <option>أداة AI مفيدة</option>
       <option>مقارنة بين أدوات</option>
@@ -176,10 +186,9 @@
     </select>
 
     <button id="generateButton">
-      ✨ تجهيز الفيديو
+      🎬 تجهيز الفيديو
     </button>
   </div>
-
 
   <div class="card">
     <h2>⚙️ مراحل إنشاء الفيديو</h2>
@@ -194,7 +203,6 @@
       <div class="step">7️⃣ النشر على TikTok</div>
     </div>
   </div>
-
 
   <div class="card">
     <h2>👀 معاينة</h2>
@@ -213,93 +221,12 @@
 
   <p>© 2026 AI بالعربي</p>
 </footer>
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
   const workerUrl =
     "https://ai-arabic-tiktok.webhib08.workers.dev/generate-story";
 
-  const button = document.getElementById("generateButton");
-  const topicInput = document.getElementById("topic");
-  const typeInput = document.getElementById("contentType");
-  const durationInput = document.getElementById("duration");
-  const preview = document.getElementById("preview");
-
-  button.addEventListener("click", async function () {
-
-    const topic = topicInput.value.trim();
-
-    if (!topic) {
-      preview.innerText = "⚠️ اكتبي موضوع الفيديو أولاً.";
-      return;
-    }
-
-    button.disabled = true;
-    button.innerText = "⏳ عم حضّر القصة...";
-
-    preview.innerText =
-      "🤖 الذكاء الاصطناعي عم يكتب قصة تالا...";
-
-    try {
-
-      const type = typeInput.value;
-      const duration = durationInput.value;
-
-      const prompt =
-        "موضوع الفيديو: " + topic +
-        "\nنوع المحتوى: " + type +
-        "\nالمدة المطلوبة: " + duration +
-        "\nاكتبي قصة لشخصية تالا (توتي) حسب التعليمات الموجودة في البوت.";
-
-      const url =
-        workerUrl +
-        "?topic=" +
-        encodeURIComponent(prompt);
-
-      const response = await fetch(url, {
-        method: "GET",
-        mode: "cors",
-        cache: "no-store",
-        credentials: "omit"
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          "Worker error: " + response.status
-        );
-      }
-
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(
-          data.error || "فشل إنشاء القصة"
-        );
-      }
-
-      preview.innerText =
-        data.story || "✅ تم إنشاء القصة بنجاح.";
-
-    } catch (error) {
-
-      console.error(error);
-
-      preview.innerText =
-        "❌ صار خطأ أثناء إنشاء القصة.\n\n" +
-        error.message;
-
-    } finally {
-
-      button.disabled = false;
-      button.innerText = "🎬 تجهيز الفيديو";
-
-    }
-
-  });
-
-});
-</script>
-
-</script>
-</body>
-</html>
+  /* =========================
+     Tik
