@@ -246,6 +246,45 @@
   });
 
 </script>
+<script>
+const workerUrl = "https://ai-arabic-tiktok.webhib08.workers.dev/generate-story";
 
+document.getElementById("generateButton").onclick = async function() {
+  const topic = document.getElementById("topic").value.trim();
+  const type = document.getElementById("contentType").value;
+  const duration = document.getElementById("duration").value;
+  const preview = document.getElementById("preview");
+
+  if (!topic) {
+    preview.innerText = "⚠️ اكتبي موضوع الفيديو أولاً.";
+    return;
+  }
+
+  preview.innerText = "⏳ عم حضّر القصة بالذكاء الاصطناعي...";
+
+  try {
+    const prompt =
+      topic +
+      "\nنوع المحتوى: " + type +
+      "\nالمدة المطلوبة: " + duration;
+
+    const response = await fetch(
+      workerUrl + "?topic=" + encodeURIComponent(prompt)
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || "فشل إنشاء القصة");
+    }
+
+    preview.innerText = data.story || "تم إنشاء القصة بنجاح 🎬";
+
+  } catch (error) {
+    preview.innerText =
+      "❌ صار خطأ أثناء إنشاء الفيديو.\n\n" + error.message;
+  }
+};
+</script>
 </body>
 </html>
