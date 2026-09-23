@@ -213,40 +213,92 @@
 
   <p>© 2026 AI بالعربي</p>
 </footer>
-
-
 <script>
+document.addEventListener("DOMContentLoaded", function () {
 
-  document.getElementById("tiktokButton").addEventListener("click", function() {
+  const workerUrl =
+    "https://ai-arabic-tiktok.webhib08.workers.dev/generate-story";
 
-    document.getElementById("connectionStatus").innerText =
-      "🔐 سيتم ربط حساب TikTok هنا بعد تفعيل Login Kit.";
+  const button = document.getElementById("generateButton");
+  const topicInput = document.getElementById("topic");
+  const typeInput = document.getElementById("contentType");
+  const durationInput = document.getElementById("duration");
+  const preview = document.getElementById("preview");
 
-  });
+  button.addEventListener("click", async function () {
 
-
-  document.getElementById("generateButton").addEventListener("click", function() {
-
-    const topic = document.getElementById("topic").value;
-    const type = document.getElementById("contentType").value;
-    const duration = document.getElementById("duration").value;
+    const topic = topicInput.value.trim();
 
     if (!topic) {
-      document.getElementById("preview").innerText =
-        "⚠️ اكتبي موضوع الفيديو أولاً.";
+      preview.innerText = "⚠️ اكتبي موضوع الفيديو أولاً.";
       return;
     }
 
-    document.getElementById("preview").innerText =
-      "🎬 تم تجهيز طلب الفيديو:\n\n" +
-      "الموضوع: " + topic + "\n" +
-      "النوع: " + type + "\n" +
-      "المدة: " + duration;
+    button.disabled = true;
+    button.innerText = "⏳ عم حضّر القصة...";
+
+    preview.innerText =
+      "🤖 الذكاء الاصطناعي عم يكتب قصة تالا...";
+
+    try {
+
+      const type = typeInput.value;
+      const duration = durationInput.value;
+
+      const prompt =
+        "موضوع الفيديو: " + topic +
+        "\nنوع المحتوى: " + type +
+        "\nالمدة المطلوبة: " + duration +
+        "\nاكتبي قصة لشخصية تالا (توتي) حسب التعليمات الموجودة في البوت.";
+
+      const url =
+        workerUrl +
+        "?topic=" +
+        encodeURIComponent(prompt);
+
+      const response = await fetch(url, {
+        method: "GET",
+        mode: "cors",
+        cache: "no-store",
+        credentials: "omit"
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          "Worker error: " + response.status
+        );
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(
+          data.error || "فشل إنشاء القصة"
+        );
+      }
+
+      preview.innerText =
+        data.story || "✅ تم إنشاء القصة بنجاح.";
+
+    } catch (error) {
+
+      console.error(error);
+
+      preview.innerText =
+        "❌ صار خطأ أثناء إنشاء القصة.\n\n" +
+        error.message;
+
+    } finally {
+
+      button.disabled = false;
+      button.innerText = "🎬 تجهيز الفيديو";
+
+    }
 
   });
 
+});
 </script>
-<script>
 const workerUrl = "https://ai-arabic-tiktok.webhib08.workers.dev/generate-story";
 
 document.getElementById("generateButton").onclick = async function() {
