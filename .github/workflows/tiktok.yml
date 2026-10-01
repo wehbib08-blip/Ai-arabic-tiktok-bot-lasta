@@ -1,4 +1,4 @@
-name: TikTok Video Bot
+name: TikTok Bot
 
 on:
   workflow_dispatch:
@@ -21,8 +21,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Generate TikTok video
+      - name: Get Pixabay video
         env:
-          FAL_KEY: ${{ secrets.FAL_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
         run: |
           python tiktok_bot.py
+
+      - name: Save video
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiktok-video
+          path: tiktok_video.mp4
