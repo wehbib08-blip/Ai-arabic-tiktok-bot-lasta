@@ -16,19 +16,24 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Get Pixabay video
+      - name: Get Pixabay videos
         env:
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
         run: |
           python tiktok_bot.py
 
-      - name: Save video
+      - name: Upload story video
         uses: actions/upload-artifact@v4
         with:
-          name: tiktok-video
+          name: tiktok-story
           path: tiktok_story.mp4
