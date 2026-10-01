@@ -1,19 +1,123 @@
 import os
 import sys
+import subprocess
 import requests
 from pathlib import Path
 
 API_KEY = os.environ.get("PIXABAY_API_KEY")
-OUTPUT_FILE = "tiktok_video.mp4"
 
-SEARCH_TERMS = [
-    "horror",
-    "mystery",
-    "dark forest",
-    "abandoned house",
-    "scary night",
-    "mysterious",
+OUTPUT_FILE = "tiktok_story.mp4"
+
+SCENES = [
+    "abandoned house night",
+    "woman walking dark hallway",
+    "old door night",
+    "dark room mysterious",
+    "shadow person",
+    "scared woman night",
 ]
+
+def search_video(query):
+    print(f"\nSearching: {query}")
+
+    params = {
+        "key": API_KEY,
+        "q": query,
+        "video_type": "all",
+        "order": "popular",
+        "per_page": 20,
+        "safesearch": "true",
+    }
+
+    response = requests.get(
+        "https://pixabay.com/api/videos/",
+        params=params,
+        timeout=30,
+    )
+
+    response.raise_for_status()
+
+    videos = response.json().get("hits", [])
+
+    if not videos:
+        print("No videos found.")
+        return None
+
+    videos.sort(
+        key=lambda x: (
+            x.get("views", 0),
+            x.get("downloads", 0),
+            x.get("likes", 0),
+        ),
+        reverse=True,
+    )
+
+    return videos[0]
+
+
+def get_video_url(video):
+    files = video.get("videos", {})
+
+    for quality in ["medium", "large", "small"]:
+        if quality in files:
+            url = files[quality].get("url")
+            if url:
+                return url
+
+    return None
+
+
+def download_video(url, filename):
+    print(f"Downloading {filename}...")
+
+    response = requests.get(
+        url,
+        timeout=180,
+    )
+
+    response.raise_for_status()
+
+    Path(filename).write_bytes(response.content)
+
+
+def create_story_video(files):
+    print("\nCreating story video...")
+
+    list_file = Path("videos.txt")
+
+    with list_file.open("w", encoding="utf-8") as f:
+        for filename in files:
+            f.write(f"file '{Path(filename).absolute()}'\n")
+
+    command = [
+        "ffmpeg",
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        "videos.txt",
+        "-vf",
+        "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "23",
+        "-pix_fmt",
+        "yuv420p",
+        "-an",
+        OUTPUT_FILE,
+    ]
+
+    subprocess.run(command, check=True)
+
+    print("\n================================")
+    print("STORY VIDEO CREATED")
+    print("File:", OUTPUT_FILE)
+    print("================================")
 
 
 def main():
@@ -23,87 +127,37 @@ def main():
 
     print("PIXABAY_API_KEY found.")
 
-    selected_video = None
+    downloaded_files = []
 
-    for term in SEARCH_TERMS:
-        print(f"\nSearching Pixabay for: {term}")
+    for index, scene in enumerate(SCENES, start=1):
 
-        params = {
-            "key": API_KEY,
-            "q": term,
-            "video_type": "all",
-            "order": "popular",
-            "per_page": 20,
-            "safesearch": "true",
-        }
+        print(f"\n========== SCENE {index} ==========")
 
-        response = requests.get(
-            "https://pixabay.com/api/videos/",
-            params=params,
-            timeout=30,
-        )
+        video = search_video(scene)
 
-        response.raise_for_status()
+        if not video:
+            continue
 
-        videos = response.json().get("hits", [])
+        print("Selected ID:", video.get("id"))
+        print("Views:", video.get("views"))
 
-        print(f"Found {len(videos)} videos.")
+        url = get_video_url(video)
 
-        if videos:
-            videos.sort(
-                key=lambda x: (
-                    x.get("views", 0),
-                    x.get("downloads", 0),
-                    x.get("likes", 0),
-                ),
-                reverse=True,
-            )
+        if not url:
+            print("No downloadable file.")
+            continue
 
-            selected_video = videos[0]
-            break
+        filename = f"scene_{index}.mp4"
 
-    if not selected_video:
-        print("ERROR: No suitable video found.")
+        download_video(url, filename)
+
+        downloaded_files.append(filename)
+
+    if len(downloaded_files) < 2:
+        print("ERROR: Not enough scenes found.")
         sys.exit(1)
 
-    print("\nSelected video:")
-    print("ID:", selected_video.get("id"))
-    print("Views:", selected_video.get("views"))
-    print("Downloads:", selected_video.get("downloads"))
-    print("Likes:", selected_video.get("likes"))
-
-    video_files = selected_video.get("videos", {})
-
-    video_url = None
-
-    for quality in ["medium", "large", "small"]:
-        if quality in video_files:
-            video_url = video_files[quality].get("url")
-            if video_url:
-                break
-
-    if not video_url:
-        print("ERROR: No downloadable video found.")
-        sys.exit(1)
-
-    print("\nDownloading video...")
-
-    video_response = requests.get(
-        video_url,
-        timeout=180,
-    )
-
-    video_response.raise_for_status()
-
-    Path(OUTPUT_FILE).write_bytes(video_response.content)
-
-    file_size = Path(OUTPUT_FILE).stat().st_size
-
-    print("\n===================================")
-    print("VIDEO DOWNLOADED SUCCESSFULLY")
-    print("File:", OUTPUT_FILE)
-    print("Size:", file_size, "bytes")
-    print("===================================")
+    create_story_video(downloaded_files)
 
 
 if __name__ == "__main__":
