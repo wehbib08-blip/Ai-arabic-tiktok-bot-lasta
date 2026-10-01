@@ -17,6 +17,13 @@ SCENES = [
     "scared woman night",
 ]
 
+SCENE_DURATION = 5
+
+
+def run_command(command):
+    subprocess.run(command, check=True)
+
+
 def search_video(query):
     print(f"\nSearching: {query}")
 
@@ -80,14 +87,57 @@ def download_video(url, filename):
     Path(filename).write_bytes(response.content)
 
 
+def prepare_scene(input_file, output_file):
+    print(f"Preparing {input_file}...")
+
+    command = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        input_file,
+        "-t",
+        str(SCENE_DURATION),
+        "-vf",
+        "scale=1080:1920:force_original_aspect_ratio=increase,"
+        "crop=1080:1920,"
+        "fps=30",
+        "-an",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-crf",
+        "23",
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        output_file,
+    ]
+
+    run_command(command)
+
+
 def create_story_video(files):
     print("\nCreating story video...")
+
+    prepared_files = []
+
+    for index, filename in enumerate(files, start=1):
+        prepared = f"prepared_{index}.mp4"
+
+        prepare_scene(filename, prepared)
+
+        prepared_files.append(prepared)
 
     list_file = Path("videos.txt")
 
     with list_file.open("w", encoding="utf-8") as f:
-        for filename in files:
-            f.write(f"file '{Path(filename).absolute()}'\n")
+        for filename in prepared_files:
+            absolute_path = Path(filename).absolute()
+            f.write(f"file '{absolute_path}'\n")
+
+    print("\nJoining scenes...")
 
     command = [
         "ffmpeg",
@@ -98,25 +148,19 @@ def create_story_video(files):
         "0",
         "-i",
         "videos.txt",
-        "-vf",
-        "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "veryfast",
-        "-crf",
-        "23",
-        "-pix_fmt",
-        "yuv420p",
-        "-an",
+        "-c",
+        "copy",
+        "-movflags",
+        "+faststart",
         OUTPUT_FILE,
     ]
 
-    subprocess.run(command, check=True)
+    run_command(command)
 
     print("\n================================")
     print("STORY VIDEO CREATED")
     print("File:", OUTPUT_FILE)
+    print("Duration: about 30 seconds")
     print("================================")
 
 
