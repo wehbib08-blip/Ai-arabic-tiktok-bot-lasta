@@ -66,10 +66,8 @@ def generate_video():
 
     operation = client.models.generate_videos(
         model="veo-3.1-lite-generate-preview",
-        source=types.GenerateVideosSource(
-            prompt=PROMPT,
-            image=family_image,
-        ),
+        prompt=PROMPT,
+        image=family_image,
         config=types.GenerateVideosConfig(
             aspect_ratio="9:16",
             resolution="720p",
