@@ -65,15 +65,15 @@ def generate_video():
     print("Starting video generation...")
 
     operation = client.models.generate_videos(
-        model="veo-3.1-lite-generate-preview",
-        prompt=PROMPT,
-        image=family_image,
-        config=types.GenerateVideosConfig(
-            aspect_ratio="9:16",
-            resolution="720p",
-            number_of_videos=1,
-            duration_seconds=8,
-        ),
+    model="veo-3.1-lite-generate-preview",
+    prompt=PROMPT,
+    image=family_image,
+    config=types.GenerateVideosConfig(
+        aspect_ratio="9:16",
+        resolution="720p",
+        number_of_videos=1,
+        duration_seconds=8,
+    ),
     )
 
     while not operation.done:
