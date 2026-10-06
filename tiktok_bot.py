@@ -11,62 +11,37 @@ OUTPUT_FILE = "tiktok_story.mp4"
 
 
 PROMPT = """
-Vertical 9:16 animated family scene for TikTok.
+Animate this family image into a warm 8-second vertical TikTok scene.
 
-A warm Lebanese family in a cozy modern family living room.
+The image contains exactly three family members:
+a mother, a father, and their daughter Toti.
 
-There are exactly three characters:
+Keep all three characters visually consistent with the input image.
+Do not change their faces, hair, clothing, age, or overall appearance.
 
-1. Toti:
-A cute 10-year-old Arabic girl.
-Chestnut-brown wavy hair, large hazel eyes, fair skin,
-sweet cheerful personality.
+Scene:
+The family is sitting together in their cozy living room.
 
-She wears a cream floral sweater,
-loose light-blue cargo jeans,
-and white and pink sneakers.
-
-She is the family's young daughter.
-
-2. Reem:
-Toti's mother, a young adult Lebanese woman.
-Brown hair, warm friendly face,
-elegant casual home clothes.
-
-Keep her appearance consistent with the provided reference image.
-
-3. Abdullah:
-Toti's father, a young adult Lebanese man.
-Dark wavy hair, short beard, warm friendly face,
-casual family clothes.
-
-Keep his appearance consistent with the provided reference image.
-
-SCENE:
-
-The three family members are together in the living room.
-
-Toti walks toward her mother and father excitedly.
-She smiles and says naturally in Arabic:
+Toti looks happy and excited.
+She turns slightly toward her mother and father and naturally says in Arabic:
 
 "ماما، بابا، بدي خبركن شو صار معي اليوم!"
 
-Her mother looks at her with a warm smile.
+The mother smiles warmly at Toti.
+The father smiles and listens.
 
-Her father smiles and listens.
+Natural facial expressions.
+Natural small body movements.
+Subtle realistic breathing and blinking.
+Gentle cinematic camera movement.
+Warm Lebanese family atmosphere.
+High-quality 3D animated movie style.
 
-Warm family atmosphere.
-Cozy Lebanese home.
-High-quality 3D animated children's film style.
-Natural character movement.
-Expressive faces.
-Cinematic camera movement.
-
+Keep exactly the same three people.
+Do not add any other people.
 No subtitles.
 No text on screen.
-No extra people.
-Exactly three characters.
-Keep the characters consistent throughout the entire video.
+Do not change the characters' appearance.
 """
 
 
@@ -77,47 +52,32 @@ def generate_video():
         sys.exit(1)
 
     print("GEMINI_API_KEY found.")
-    print("Starting Veo 3.1 family test...")
+    print("Starting Veo 3.1 Lite image-to-video...")
 
     client = genai.Client(api_key=API_KEY)
 
-    # Load the two adult reference images
-    print("Loading mom.png...")
-    mom_image = types.Image.from_file(location="mom.png")
+    print("Loading family.png...")
 
-    print("Loading dad.png...")
-    dad_image = types.Image.from_file(location="dad.png")
-
-    # Create reference images
-    mom_reference = types.VideoGenerationReferenceImage(
-        image=mom_image,
-        reference_type="asset",
-    )
-
-    dad_reference = types.VideoGenerationReferenceImage(
-        image=dad_image,
-        reference_type="asset",
+    family_image = types.Image.from_file(
+        location="family.png"
     )
 
     print("Starting video generation...")
 
     operation = client.models.generate_videos(
-        model="veo-3.1-generate-preview",
-        prompt=PROMPT,
+        model="veo-3.1-lite-generate-preview",
+        source=types.GenerateVideosSource(
+            prompt=PROMPT,
+            image=family_image,
+        ),
         config=types.GenerateVideosConfig(
             aspect_ratio="9:16",
             resolution="720p",
             number_of_videos=1,
-            person_generation="allow_adult",
-            duration_seconds="8",
-            reference_images=[
-                mom_reference,
-                dad_reference,
-            ],
+            duration_seconds=8,
         ),
     )
 
-    # Wait for Veo to finish
     while not operation.done:
         print("Waiting for Veo...")
         time.sleep(10)
@@ -137,7 +97,7 @@ def generate_video():
     )
 
     print("================================")
-    print("FAMILY TEST VIDEO CREATED")
+    print("FAMILY VIDEO CREATED")
     print("File:", OUTPUT_FILE)
     print("================================")
 
