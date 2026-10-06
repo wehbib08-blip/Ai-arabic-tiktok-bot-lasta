@@ -219,4 +219,4 @@ def combine_videos(video_files):
         text=True
     )
 
-    if result.returncode !=
+   if result.returncode != 0:
