@@ -42,14 +42,14 @@ def generate_video():
     client = genai.Client(api_key=API_KEY)
 
     operation = client.models.generate_videos(
-        model="veo-3.1-generate-preview",
-        prompt=PROMPT,
-        config=types.GenerateVideosConfig(
-            aspect_ratio="9:16",
-            resolution="720p",
-            number_of_videos=1,
-        ),
-    )
+    model="veo-3.1-lite-generate-preview",
+    prompt=PROMPT,
+    config=types.GenerateVideosConfig(
+        aspect_ratio="9:16",
+        resolution="720p",
+        number_of_videos=1,
+    ),
+)
 
     while not operation.done:
         print("Waiting for Veo...")
