@@ -7,7 +7,7 @@ from google.genai import types
 
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
-OUTPUT_FILE = "toti_family_test.mp4"
+OUTPUT_FILE = "tiktok_story.mp4"
 
 
 PROMPT = """
