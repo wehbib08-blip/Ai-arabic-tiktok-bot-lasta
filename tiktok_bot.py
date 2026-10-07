@@ -508,9 +508,10 @@ def generate_scene_video(
 
             model="veo-3.1-lite-generate-preview",
 
-            prompt=prompt,
-
-            image=image,
+            source=types.GenerateVideosSource(
+                prompt=prompt,
+                image=image
+            ),
 
             config=types.GenerateVideosConfig(
                 aspect_ratio="9:16",
@@ -550,7 +551,7 @@ def generate_scene_video(
 
         client.files.download(
             file=video.video,
-            download_path=output_path
+            destination=output_path
         )
 
     except Exception as error:
