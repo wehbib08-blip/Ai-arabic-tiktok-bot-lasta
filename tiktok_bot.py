@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import json
 import subprocess
 
 from google import genai
@@ -8,78 +9,98 @@ from google.genai import types
 
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
+
 OUTPUT_FILE = "tiktok_story.mp4"
+BABY_IMAGE = "baby.png"
 
 
-SCENES = [
+# ==========================================
+# 1. GEMINI CREATES A NEW SILENT STORY
+# ==========================================
+
+def generate_story(client):
+
+    print("================================")
+    print("Creating a new baby story...")
+    print("================================")
+
+    prompt = """
+You are a creative director for short viral TikTok videos.
+
+Create ONE completely new, cute, funny and visually understandable
+story starring the same adorable toddler shown in the reference image.
+
+The story must be SILENT.
+
+The baby never talks.
+The baby never says words.
+There is no dialogue.
+There is no lip-sync.
+
+The story must be understandable only through:
+- facial expressions
+- eye movements
+- pointing
+- hand gestures
+- crawling
+- walking
+- playing
+- reactions
+- interaction with objects
+
+Create exactly 4 connected scenes.
+
+Each scene should be visually interesting and continue naturally
+from the previous scene.
+
+The story should be suitable for children and families.
+
+Use simple everyday objects such as toys, food, balloons,
+stuffed animals, boxes, balls or household objects.
+
+Do not use dangerous situations.
+Do not use weapons.
+Do not use frightening scenes.
+Do not add other people.
+
+Return ONLY valid JSON in this exact structure:
+
+{
+  "title": "short story title",
+  "scenes": [
     {
-        "name": "scene1",
-        "prompt": """
-Create an 8-second vertical silent 3D cartoon scene using the provided baby image.
-
-IMPORTANT:
-Keep the exact same baby character throughout the video.
-Preserve the baby's face, large hazel eyes, curly brown hair,
-skin tone, age, body proportions and clothing.
-
-Scene:
-The cute baby is sitting on a cozy playroom floor.
-A colorful toy car is a few steps away.
-
-The baby suddenly notices the toy.
-He looks at it with curiosity.
-His eyes become excited and he points toward the toy.
-
-Use clear baby gestures and expressive facial expressions.
-
-The baby does NOT speak.
-No dialogue.
-No lip-sync.
-No subtitles.
-No text.
-No other people.
-
-Cute exaggerated 3D cartoon animation.
-Natural baby movement.
-Warm cinematic lighting.
-Vertical 9:16 composition.
-"""
+      "scene": 1,
+      "description": "visual description of scene 1"
     },
-
     {
-        "name": "scene2",
-        "prompt": """
-Create an 8-second vertical silent 3D cartoon scene using the provided baby image.
-
-IMPORTANT:
-Keep the exact same baby character.
-Do not change the face, large hazel eyes, curly brown hair,
-skin tone, age, body proportions or clothing.
-
-Scene:
-The baby wants to reach the colorful toy car.
-
-He crawls toward it.
-He stretches his little hands.
-The toy rolls slightly farther away.
-
-The baby stops and looks surprised.
-Then he makes a funny determined expression.
-
-Use exaggerated but natural baby body language.
-
-The baby does NOT speak.
-No dialogue.
-No lip-sync.
-No subtitles.
-No text.
-No other people.
-
-Cute expressive 3D cartoon animation.
-Warm playful atmosphere.
-Vertical 9:16 composition.
-"""
+      "scene": 2,
+      "description": "visual description of scene 2"
     },
-
     {
-        "name": "scene
+      "scene": 3,
+      "description": "visual description of scene 3"
+    },
+    {
+      "scene": 4,
+      "description": "visual description of scene 4"
+    }
+  ]
+}
+"""
+
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json"
+        )
+    )
+
+    if not response.text:
+        print("ERROR: Gemini returned no story.")
+        sys.exit(1)
+
+    try:
+        story = json.loads(response.text)
+    except json.JSONDecodeError:
+        print("ERROR: Gemini
