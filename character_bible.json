@@ -69,4 +69,240 @@
         "accessories": "pearl earrings"
       },
 
-     
+      "personality": [
+        "kind",
+        "loving",
+        "gentle",
+        "patient",
+        "warm",
+        "protective",
+        "highly expressive"
+      ],
+
+      "communication": {
+        "speech": false,
+        "dialogue": false,
+        "lip_sync": false,
+        "expression_based": true,
+        "gesture_based": true
+      },
+
+      "official_outfit": {
+        "outer": "cream knitted cardigan",
+        "top": "dark floral blouse",
+        "accessories": "pearl earrings"
+      }
+    }
+  ],
+
+  "story_rules": {
+
+    "allowed_characters": [
+      "baby",
+      "grandma"
+    ],
+
+    "character_selection": {
+      "baby_only": true,
+      "baby_and_grandma": true
+    },
+
+    "story_structure": [
+      "hook",
+      "setup",
+      "emotional reaction",
+      "problem",
+      "problem escalation",
+      "attempt or decision",
+      "consequence",
+      "resolution",
+      "memorable ending"
+    ],
+
+    "continuity": [
+      "Every scene must continue directly from the previous scene.",
+      "The story must be one connected mini movie.",
+      "Do not generate unrelated scenes.",
+      "Do not generate four separate ideas.",
+      "The location should remain consistent unless the story naturally requires a change.",
+      "Important objects must remain consistent.",
+      "Characters must remember what happened in previous scenes.",
+      "The ending must resolve the main problem."
+    ],
+
+    "silent_storytelling": [
+      "No spoken dialogue.",
+      "No narration.",
+      "No lip sync.",
+      "No subtitles.",
+      "No text on screen.",
+      "The story must be understandable visually.",
+      "Use facial expressions.",
+      "Use eye contact.",
+      "Use gestures.",
+      "Use body language.",
+      "Use movement and reactions.",
+      "Use visual comedy and emotional reactions."
+    ],
+
+    "tone": [
+      "cute",
+      "funny",
+      "heartwarming",
+      "emotional",
+      "family friendly",
+      "age appropriate"
+    ],
+
+    "story_ideas": [
+      "funny everyday situations",
+      "baby getting into harmless trouble",
+      "baby trying to solve a small problem",
+      "baby missing grandma",
+      "grandma visiting the baby",
+      "grandma leaving and baby trying to stop her",
+      "baby helping grandma",
+      "grandma helping the baby",
+      "small misunderstandings",
+      "cute surprises",
+      "family moments",
+      "playtime",
+      "food situations",
+      "bedtime situations",
+      "toy situations",
+      "rainy day situations",
+      "simple emotional moments"
+    ],
+
+    "avoid": [
+      "unrelated story ideas",
+      "random scene changes",
+      "new main characters",
+      "speaking characters",
+      "lip syncing",
+      "text overlays",
+      "subtitles",
+      "horror",
+      "graphic violence",
+      "weapons",
+      "dangerous stunts",
+      "sexual content",
+      "adult themes"
+    ]
+  },
+
+  "character_lock": {
+
+    "priority": "character continuity is more important than visual variation",
+
+    "baby_must_remain_identical": [
+      "same face",
+      "same facial features",
+      "same eye shape",
+      "same eye color",
+      "same nose",
+      "same mouth",
+      "same skin tone",
+      "same hair color",
+      "same curly hair pattern",
+      "same hairstyle",
+      "same age",
+      "same body proportions",
+      "same official outfit"
+    ],
+
+    "grandma_must_remain_identical": [
+      "same face",
+      "same facial features",
+      "same eye shape",
+      "same eye color",
+      "same skin tone",
+      "same hair color",
+      "same gray streaks",
+      "same tied-up hairstyle",
+      "same age",
+      "same body proportions",
+      "same official outfit",
+      "same pearl earrings"
+    ],
+
+    "rules": [
+      "Never redesign the characters.",
+      "Never replace the characters.",
+      "Never change their clothes.",
+      "Never change their hair.",
+      "Never change their facial features.",
+      "Never change their age.",
+      "Never make them realistic humans.",
+      "Never turn them into different cartoon characters.",
+      "Preserve the exact visual identity from the reference images.",
+      "Continuity is more important than visual variation."
+    ]
+  },
+
+  "visual_style": {
+
+    "style": "high quality cute 3D animated movie",
+
+    "quality": [
+      "polished 3D character rendering",
+      "soft cinematic lighting",
+      "detailed facial expressions",
+      "natural character movement",
+      "cute expressive animation",
+      "consistent proportions"
+    ],
+
+    "camera": [
+      "vertical 9:16",
+      "cinematic framing",
+      "clear view of facial expressions",
+      "medium shots and close ups when emotions matter",
+      "smooth natural camera movement"
+    ]
+  },
+
+  "veo_rules": {
+
+    "scene_duration_seconds": 8,
+
+    "reference_images": {
+      "baby_only": "baby.png",
+      "baby_and_grandma": "baby_grandma.png"
+    },
+
+    "instructions": [
+      "Use the official reference image as the identity source.",
+      "Preserve character identity across every scene.",
+      "Do not introduce visual redesigns.",
+      "Each scene must continue from the previous scene.",
+      "The generated scene must represent one specific story beat."
+    ]
+  },
+
+  "generation_rules": {
+
+    "gemini_must_generate": [
+      "one story title",
+      "one story goal",
+      "one problem",
+      "one escalation",
+      "one resolution",
+      "four connected scenes"
+    ],
+
+    "scene_rules": [
+      "Scene 1 establishes the situation.",
+      "Scene 2 introduces the problem.",
+      "Scene 3 escalates the problem.",
+      "Scene 4 resolves the problem with a memorable emotional or funny ending."
+    ],
+
+    "important": [
+      "The four scenes are parts of ONE story.",
+      "Do not create four unrelated scenes.",
+      "Do not restart the story in every scene.",
+      "Do not invent characters outside this Character Bible."
+    ]
+  }
+}
