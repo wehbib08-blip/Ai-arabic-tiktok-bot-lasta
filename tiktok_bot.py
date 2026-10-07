@@ -20,6 +20,14 @@ BABY_GRANDMA_IMAGE = "baby_grandma.png"
 
 OUTPUT_VIDEO = "tiktok_story.mp4"
 
+# QUALITY TEST: generate only the first scene for now.
+# Change to 8 after we approve the video quality.
+NUMBER_OF_SCENES = 1
+
+# Retry temporary Veo quota/rate-limit errors instead of failing immediately.
+VEO_MAX_RETRIES = 3
+VEO_RETRY_DELAYS = [60, 120, 180]
+
 
 # ============================================================
 # API
@@ -123,7 +131,7 @@ CHARACTER BIBLE
 YOUR TASK
 ==================================================
 
-Create ONE completely new silent story.
+Create ONE completely new visual story with natural sound. No long dialogue.
 
 The story must use ONLY:
 - baby
@@ -151,7 +159,7 @@ Scene 6 = attempt to solve the problem.
 Scene 7 = resolution begins.
 Scene 8 = memorable emotional or funny ending.
 
-The story must be understandable without dialogue.
+The story must be understandable without long dialogue. Short natural baby words or sounds are allowed.
 
 Return ONLY valid JSON.
 
@@ -219,7 +227,7 @@ Scene 8 must clearly resolve the main problem and end the story.
 
 Do not create four unrelated ideas.
 
-Do not add dialogue.
+Do not add long dialogue. Short natural words such as “mama”, “teta”, “no”, or “bye” are allowed when they fit the action.
 
 Do not add narration.
 
@@ -383,7 +391,7 @@ def create_video_prompt(
     )
 
     prompt = f"""
-Create ONE NEWLY GENERATED 3D ANIMATED SCENE from a continuous animated short movie.
+Create ONE NEWLY GENERATED 3D ANIMATED SCENE from a continuous animated short movie with synchronized native audio.
 
 This is NOT a standalone video.
 
@@ -478,7 +486,7 @@ consistent from scene to scene.
 
 Keep important story objects consistent.
 
-This is a visual-first animated story with natural sound.
+This is a visual-first animated story with natural sound and short, natural character sounds/words.
 
 Do NOT create long dialogue or conversations.
 
@@ -562,34 +570,68 @@ def generate_scene_video(
     print("Generating Veo scene...")
     print("")
 
-    try:
+    image = types.Image.from_file(
+        location=reference_image
+    )
 
-        image = types.Image.from_file(
-            location=reference_image
-        )
+    operation = None
 
-        operation = client.models.generate_videos(
+    for attempt in range(1, VEO_MAX_RETRIES + 1):
 
-            model="veo-3.1-lite-generate-preview",
-
-            source=types.GenerateVideosSource(
-                prompt=prompt,
-                image=image
-            ),
-
-            config=types.GenerateVideosConfig(
-                aspect_ratio="9:16",
-                resolution="720p",
-                number_of_videos=1,
-                duration_seconds=8
+        try:
+            print(
+                f"Veo request attempt {attempt}/{VEO_MAX_RETRIES}..."
             )
-        )
 
-    except Exception as error:
+            operation = client.models.generate_videos(
+                model="veo-3.1-lite-generate-preview",
+                source=types.GenerateVideosSource(
+                    prompt=prompt,
+                    image=image
+                ),
+                config=types.GenerateVideosConfig(
+                    aspect_ratio="9:16",
+                    resolution="720p",
+                    number_of_videos=1,
+                    duration_seconds=8
+                )
+            )
 
-        print("ERROR: Veo generation failed.")
-        print(error)
+            break
 
+        except Exception as error:
+
+            error_text = str(error)
+
+            print("Veo request failed.")
+            print(error_text)
+
+            if (
+                "429" not in error_text
+                and "RESOURCE_EXHAUSTED" not in error_text
+            ):
+                print("ERROR: Non-quota Veo error. Stopping.")
+                sys.exit(1)
+
+            if attempt == VEO_MAX_RETRIES:
+                print(
+                    "ERROR: Veo quota/rate limit still active "
+                    "after retries."
+                )
+                sys.exit(1)
+
+            delay = VEO_RETRY_DELAYS[attempt - 1]
+
+            print(
+                f"Quota/rate limit detected. "
+                f"Waiting {delay} seconds before retry..."
+            )
+
+            time.sleep(delay)
+
+    if operation is None:
+
+        print("ERROR: Veo generation did not start.")
         sys.exit(1)
 
     print("Waiting for Veo...")
@@ -606,7 +648,6 @@ def generate_scene_video(
 
         print("ERROR: Veo operation failed.")
         print(operation.error)
-
         sys.exit(1)
 
     try:
@@ -744,7 +785,7 @@ def main():
 
     print("")
     print("========================================")
-    print("     SILENT BABY STORY BOT")
+    print("     BABY STORY BOT - QUALITY TEST")
     print("========================================")
     print("")
 
@@ -764,9 +805,13 @@ def main():
 
     scenes = story["scenes"]
 
-    # 3. Generate eight connected Veo scenes with native audio
+    # 3. Generate only the configured number of scenes for the quality test.
+    scenes_to_generate = scenes[:NUMBER_OF_SCENES]
+
+    print(f"Generating {len(scenes_to_generate)} scene(s) for this run.")
+
     for index, scene in enumerate(
-        scenes
+        scenes_to_generate
     ):
 
         previous_scene = ""
@@ -781,8 +826,8 @@ def main():
                 ""
             )
 
-        if index < len(scenes) - 1:
-            next_scene = scenes[
+        if index < len(scenes_to_generate) - 1:
+            next_scene = scenes_to_generate[
                 index + 1
             ].get(
                 "description",
