@@ -156,63 +156,56 @@ The story must be understandable without dialogue.
 Return ONLY valid JSON.
 
 Use exactly this structure:
-
 {{
   "title": "short story title",
-
   "characters": [
     "baby"
   ],
-
   "location": "main location",
-
   "story_goal": "what the baby wants",
-
   "problem": "main problem",
-
   "ending": "how the story ends",
-
   "scenes": [
-    {
+    {{
       "scene": 1,
       "purpose": "hook_setup",
       "description": "detailed visual description"
-    },
-    {
+    }},
+    {{
       "scene": 2,
       "purpose": "goal",
       "description": "detailed visual description"
-    },
-    {
+    }},
+    {{
       "scene": 3,
       "purpose": "problem",
       "description": "detailed visual description"
-    },
-    {
+    }},
+    {{
       "scene": 4,
       "purpose": "reaction",
       "description": "detailed visual description"
-    },
-    {
+    }},
+    {{
       "scene": 5,
       "purpose": "escalation",
       "description": "detailed visual description"
-    },
-    {
+    }},
+    {{
       "scene": 6,
       "purpose": "attempt",
       "description": "detailed visual description"
-    },
-    {
+    }},
+    {{
       "scene": 7,
       "purpose": "resolution",
       "description": "detailed visual description"
-    },
-    {
+    }},
+    {{
       "scene": 8,
       "purpose": "ending",
       "description": "detailed visual description"
-    }
+    }}
   ]
 }}
 
