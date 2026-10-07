@@ -235,6 +235,10 @@ Do not add subtitles.
 Do not add text.
 
 Make the story visually expressive, cute, funny or emotional.
+
+Every scene must contain clear physical character actions and interactions.
+Describe what each character DOES, not just what the camera sees.
+Each scene should have at least 2-4 meaningful actions or reactions.
 """
 
     try:
@@ -386,7 +390,7 @@ def create_video_prompt(
     )
 
     prompt = f"""
-Create ONE scene from a continuous silent 3D animated short movie.
+Create ONE NEWLY GENERATED 3D ANIMATED SCENE from a continuous animated short movie.
 
 This is NOT a standalone video.
 
@@ -443,9 +447,22 @@ NEXT SCENE
 VISUAL RULES
 ==================================================
 
-Use the provided reference image as the identity reference.
+USE THE PROVIDED IMAGE ONLY AS A CHARACTER IDENTITY REFERENCE.
 
-Keep the exact same characters.
+The reference image is NOT the scene to animate.
+
+DO NOT simply animate, pan, zoom, crop, or move the source image.
+
+DO NOT make the result look like a photograph being moved.
+
+RECREATE the characters as fully animated 3D characters inside a newly generated
+3D environment that fits the current story scene.
+
+The characters must perform real physical actions appropriate to the scene:
+walking, standing, sitting, reaching, picking up objects, turning, hugging,
+running, playing, reacting, crying, laughing, or interacting with each other.
+
+Keep the exact same character identities.
 
 Do NOT redesign the characters.
 
@@ -463,9 +480,10 @@ Do NOT change their body proportions.
 
 Preserve character identity exactly.
 
-Keep the environment visually consistent.
+The environment should be newly generated for the story, while remaining
+consistent from scene to scene.
 
-Keep important objects consistent.
+Keep important story objects consistent.
 
 This is a visual-first animated story with natural sound.
 
@@ -497,6 +515,20 @@ Include pleasant synchronized audio:
 
 Audio must support the story without overpowering the characters.
 
+ACTION DIRECTION:
+
+Prioritize character animation over camera movement.
+
+The main subject must visibly move through the scene.
+
+Show full-body or medium shots when needed so the viewer can clearly see the
+character walking, reaching, carrying, sitting, standing, hugging, reacting,
+or interacting with objects.
+
+Use close-ups only for important emotional reactions.
+
+Avoid long shots where the character barely moves.
+
 Style:
 
 cute polished high-quality 3D animated movie.
@@ -510,6 +542,9 @@ Expressive facial reactions.
 Vertical 9:16 composition.
 
 The scene must feel like part of ONE continuous movie.
+
+The reference image must NOT remain visible as a static image.
+Generate the characters anew and animate them performing the described actions.
 
 Generate synchronized native audio for the scene.
 Use gentle background music and appropriate sound effects.
