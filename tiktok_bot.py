@@ -140,12 +140,16 @@ Do NOT invent additional characters.
 
 The story must be one continuous mini movie.
 
-It must contain exactly 4 connected scenes.
+It must contain exactly 8 connected scenes.
 
 Scene 1 = hook and setup.
-Scene 2 = problem.
-Scene 3 = escalation and attempt.
-Scene 4 = resolution and memorable ending.
+Scene 2 = establish the goal.
+Scene 3 = problem appears.
+Scene 4 = emotional reaction.
+Scene 5 = escalation.
+Scene 6 = attempt to solve the problem.
+Scene 7 = resolution begins.
+Scene 8 = memorable emotional or funny ending.
 
 The story must be understandable without dialogue.
 
@@ -169,38 +173,56 @@ Use exactly this structure:
   "ending": "how the story ends",
 
   "scenes": [
-    {{
+    {
       "scene": 1,
       "purpose": "hook_setup",
       "description": "detailed visual description"
-    }},
-    {{
+    },
+    {
       "scene": 2,
+      "purpose": "goal",
+      "description": "detailed visual description"
+    },
+    {
+      "scene": 3,
       "purpose": "problem",
       "description": "detailed visual description"
-    }},
-    {{
-      "scene": 3,
+    },
+    {
+      "scene": 4,
+      "purpose": "reaction",
+      "description": "detailed visual description"
+    },
+    {
+      "scene": 5,
       "purpose": "escalation",
       "description": "detailed visual description"
-    }},
-    {{
-      "scene": 4,
+    },
+    {
+      "scene": 6,
+      "purpose": "attempt",
+      "description": "detailed visual description"
+    },
+    {
+      "scene": 7,
       "purpose": "resolution",
       "description": "detailed visual description"
-    }}
+    },
+    {
+      "scene": 8,
+      "purpose": "ending",
+      "description": "detailed visual description"
+    }
   ]
 }}
 
 IMPORTANT:
 
-The four scenes MUST be connected.
+All eight scenes MUST be connected.
 
-Scene 2 must continue directly from Scene 1.
+Every scene must continue directly from the previous scene.
 
-Scene 3 must continue directly from Scene 2.
-
-Scene 4 must continue directly from Scene 3.
+Scene 8 must clearly resolve the main problem and end the story.
 
 Do not create four unrelated ideas.
 
@@ -250,9 +272,9 @@ Make the story visually expressive, cute, funny or emotional.
 
     scenes = story.get("scenes", [])
 
-    if len(scenes) != 4:
+    if len(scenes) != 8:
 
-        print("ERROR: Story must contain exactly 4 scenes.")
+        print("ERROR: Story must contain exactly 8 scenes.")
 
         print(json.dumps(
             story,
@@ -445,26 +467,35 @@ Keep the environment visually consistent.
 
 Keep important objects consistent.
 
-This is a silent visual story.
+This is a visual-first animated story with natural sound.
 
-NO dialogue.
+Do NOT create long dialogue or conversations.
 
-NO speech.
+Short natural words are allowed when they improve the story, especially for the baby,
+for example: "mama", "teta", "no", "bye", "this", or a short happy/excited sound.
 
-NO lip-sync.
+No long speeches.
 
-NO subtitles.
+No narration.
 
-NO text on screen.
+No subtitles.
 
-The characters communicate only through:
+No text on screen.
 
-facial expressions,
-eye contact,
-gestures,
-body language,
-movement,
-and reactions.
+The baby can make natural toddler sounds, giggles, cries, surprised sounds,
+and very short words.
+
+Grandma may use at most very short natural words when needed.
+
+Include pleasant synchronized audio:
+- gentle cheerful background music appropriate for a cute family animation
+- natural room/environment sounds
+- footsteps and movement sounds when appropriate
+- soft object interaction sounds
+- baby giggles, gasps, or cries when appropriate
+- warm emotional musical ending
+
+Audio must support the story without overpowering the characters.
 
 Style:
 
@@ -479,6 +510,11 @@ Expressive facial reactions.
 Vertical 9:16 composition.
 
 The scene must feel like part of ONE continuous movie.
+
+Generate synchronized native audio for the scene.
+Use gentle background music and appropriate sound effects.
+Do not make the audio silent.
+
 """
 
     return prompt
@@ -636,8 +672,16 @@ def combine_videos(scene_files):
         "0",
         "-i",
         concat_file,
-        "-c",
-        "copy",
+        "-c:v",
+        "libx264",
+        "-c:a",
+        "aac",
+        "-b:a",
+        "128k",
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
         OUTPUT_VIDEO
     ]
 
@@ -692,7 +736,7 @@ def main():
 
     scenes = story["scenes"]
 
-    # 3. Generate four connected Veo scenes
+    # 3. Generate eight connected Veo scenes with native audio
     for index, scene in enumerate(
         scenes
     ):
@@ -738,13 +782,10 @@ def main():
             raw_file
         )
 
-        remove_audio(
-            raw_file,
-            clean_file
-        )
-
+        # Keep Veo's native audio: music, ambience, sound effects,
+        # and short natural character sounds.
         scene_files.append(
-            clean_file
+            raw_file
         )
 
     # 4. Combine everything
