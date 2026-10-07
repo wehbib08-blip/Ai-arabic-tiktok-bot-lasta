@@ -107,7 +107,7 @@ Use exactly this structure:
 """
 
     response = client.models.generate_content(
-        model="gemini-3.5-flash-lite",",
+        model="gemini-3.5-flash-lite",
         contents=prompt,
         config=types.GenerateContentConfig(
             response_mime_type="application/json"
@@ -268,6 +268,7 @@ def generate_scene(client, scene_number, description):
         )
 
     if not operation.response:
+
         print(
             "ERROR: Veo returned no response for scene",
             scene_number
@@ -290,8 +291,7 @@ def generate_scene(client, scene_number, description):
         destination=raw_file
     )
 
-    # Remove audio.
-    # The project is completely silent.
+    # Remove audio because the project is silent.
 
     command = [
         "ffmpeg",
@@ -414,15 +414,13 @@ def main():
         api_key=API_KEY
     )
 
-    # Step 1:
-    # Gemini invents a completely new story.
+    # Gemini creates a completely new story.
 
     story = generate_story(client)
 
     video_files = []
 
-    # Step 2:
-    # Veo creates each scene.
+    # Veo creates the four scenes.
 
     for scene in story["scenes"]:
 
@@ -434,8 +432,7 @@ def main():
 
         video_files.append(video)
 
-    # Step 3:
-    # FFmpeg combines the scenes.
+    # FFmpeg combines all scenes.
 
     combine_videos(video_files)
 
