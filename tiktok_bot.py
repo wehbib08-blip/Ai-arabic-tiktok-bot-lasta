@@ -1,516 +1,587 @@
 import os
 import sys
-import time
 import json
+import time
 import subprocess
-import random
 
 from google import genai
 from google.genai import types
 
 
-API_KEY = os.environ.get("GEMINI_API_KEY")
+# ============================================================
+# FILES
+# ============================================================
 
-OUTPUT_FILE = "tiktok_story.mp4"
+CHARACTER_BIBLE_FILE = "character_bible.json"
+MASTER_PROMPT_FILE = "master_prompt.txt"
 
 BABY_IMAGE = "baby.png"
 BABY_GRANDMA_IMAGE = "baby_grandma.png"
 
-
-# ============================================================
-# OFFICIAL CHARACTER BIBLE
-# ============================================================
-
-CHARACTER_BIBLE = """
-OFFICIAL CHARACTER BIBLE — DO NOT CHANGE THESE CHARACTERS.
-
-BABY:
-- adorable toddler boy
-- cute round face
-- warm light skin
-- large warm brown/hazel eyes
-- very curly dark-brown hair with dense natural curls
-- rosy cheeks
-- cute toddler proportions
-- joyful and highly expressive face
-- same age, face, eyes, hair and body proportions in every scene
-
-BABY OFFICIAL OUTFIT:
-- cream/beige sweatshirt
-- small teddy-bear patch on the chest
-- brown/gray pants
-- EXACT SAME outfit in every scene
-
-GRANDMA:
-- kind loving older woman
-- warm light/olive skin
-- soft natural facial lines
-- warm brown eyes
-- brown hair with natural gray streaks
-- elegant tied-up hairstyle
-- pearl earrings
-- gentle warm smile
-- same face, hair and body proportions in every scene
-
-GRANDMA OFFICIAL OUTFIT:
-- cream knitted cardigan
-- dark floral blouse underneath
-- pearl earrings
-- EXACT SAME outfit in every scene
-
-CHARACTER LOCK:
-The characters are permanent recurring characters.
-
-NEVER change:
-- facial features
-- face shape
-- eyes
-- eye color
-- nose
-- mouth
-- skin tone
-- hair color
-- hairstyle
-- curl pattern
-- age
-- body proportions
-- height relationship
-- clothing
-- clothing colors
-- clothing patterns
-- accessories
-- jewelry
-
-Never redesign, reinterpret, replace, beautify differently,
-age, or de-age the characters.
-
-The characters must look like the SAME PEOPLE from beginning
-to end.
-
-Continuity is more important than visual variation.
-"""
+OUTPUT_VIDEO = "tiktok_story.mp4"
 
 
 # ============================================================
-# GEMINI CREATES ONE CONNECTED SILENT SHORT FILM
+# API
 # ============================================================
 
-def generate_story(client):
+API_KEY = os.getenv("GEMINI_API_KEY")
 
-    print("================================")
-    print("Creating a new connected story...")
-    print("================================")
+if not API_KEY:
+    print("ERROR: GEMINI_API_KEY is missing.")
+    sys.exit(1)
+
+client = genai.Client(api_key=API_KEY)
+
+
+# ============================================================
+# LOAD CHARACTER BIBLE
+# ============================================================
+
+def load_character_bible():
+
+    if not os.path.exists(CHARACTER_BIBLE_FILE):
+        print(f"ERROR: {CHARACTER_BIBLE_FILE} not found.")
+        sys.exit(1)
+
+    try:
+        with open(
+            CHARACTER_BIBLE_FILE,
+            "r",
+            encoding="utf-8"
+        ) as file:
+
+            return json.load(file)
+
+    except Exception as error:
+
+        print("ERROR: Could not read character_bible.json")
+        print(error)
+
+        sys.exit(1)
+
+
+# ============================================================
+# LOAD MASTER PROMPT
+# ============================================================
+
+def load_master_prompt():
+
+    if not os.path.exists(MASTER_PROMPT_FILE):
+        print(f"ERROR: {MASTER_PROMPT_FILE} not found.")
+        sys.exit(1)
+
+    try:
+
+        with open(
+            MASTER_PROMPT_FILE,
+            "r",
+            encoding="utf-8"
+        ) as file:
+
+            return file.read()
+
+    except Exception as error:
+
+        print("ERROR: Could not read master_prompt.txt")
+        print(error)
+
+        sys.exit(1)
+
+
+CHARACTER_BIBLE = load_character_bible()
+
+MASTER_PROMPT = load_master_prompt()
+
+CHARACTER_BIBLE_TEXT = json.dumps(
+    CHARACTER_BIBLE,
+    ensure_ascii=False,
+    indent=2
+)
+
+
+# ============================================================
+# GENERATE STORY
+# ============================================================
+
+def generate_story():
+
+    print("")
+    print("Generating a new story with Gemini...")
+    print("")
 
     prompt = f"""
-You are the head writer for a viral silent 3D cartoon TikTok channel.
+{MASTER_PROMPT}
 
-{CHARACTER_BIBLE}
+==================================================
+CHARACTER BIBLE
+==================================================
 
-Create ONE complete short silent movie starring:
-- the baby alone
+{CHARACTER_BIBLE_TEXT}
+
+==================================================
+YOUR TASK
+==================================================
+
+Create ONE completely new silent story.
+
+The story must use ONLY:
+- baby
+- grandma
+
+The story can use:
+- baby alone
 OR
-- the baby and grandma together.
+- baby + grandma
 
-Choose naturally between these two options.
+Do NOT use any old Toti characters.
 
-IMPORTANT:
-This is NOT four separate ideas.
+Do NOT invent additional characters.
 
-It is ONE SINGLE STORY divided into exactly 4 connected scenes.
+The story must be one continuous mini movie.
 
-The story must have:
+It must contain exactly 4 connected scenes.
 
-SCENE 1:
-A clear beginning and a simple goal.
+Scene 1 = hook and setup.
+Scene 2 = problem.
+Scene 3 = escalation and attempt.
+Scene 4 = resolution and memorable ending.
 
-SCENE 2:
-Something happens that creates a problem, obstacle,
-surprise or emotional conflict.
+The story must be understandable without dialogue.
 
-SCENE 3:
-The problem becomes more interesting and the baby reacts
-or tries to solve it.
+Return ONLY valid JSON.
 
-SCENE 4:
-A satisfying cute, funny or emotional resolution.
-
-Every scene must directly continue from the previous scene.
-
-The viewer must understand:
-- what the baby wants
-- what happened
-- what the problem is
-- why the baby reacts
-- how the situation ends
-
-Use simple everyday situations.
-
-Examples:
-grandma visits and the baby does not want her to leave;
-the baby wants something grandma has;
-grandma tries to leave and the baby finds a funny way
-to convince her to stay;
-the baby and grandma play a simple game that becomes funny.
-
-The story must be visual only.
-
-No dialogue.
-No speech.
-No lip-sync.
-No subtitles.
-No text on screen.
-
-The baby must NEVER speak.
-
-Grandma must also NEVER speak.
-
-Use facial expressions, eye contact, gestures,
-body language, movement and reactions.
-
-No dangerous situations.
-No violence.
-No weapons.
-No horror.
-No injury.
-No frightening situations.
-No extra characters.
-
-Do not randomly change location.
-Do not randomly change clothes.
-Do not introduce objects that are forgotten later.
-
-Return ONLY valid JSON:
+Use exactly this structure:
 
 {{
-  "title": "short title",
-  "characters": ["baby", "grandma"],
+  "title": "short story title",
+
+  "characters": [
+    "baby"
+  ],
+
   "location": "main location",
+
   "story_goal": "what the baby wants",
+
   "problem": "main problem",
-  "ending": "how the story resolves",
+
+  "ending": "how the story ends",
+
   "scenes": [
     {{
       "scene": 1,
-      "purpose": "beginning",
-      "description": "detailed visual action"
+      "purpose": "hook_setup",
+      "description": "detailed visual description"
     }},
     {{
       "scene": 2,
       "purpose": "problem",
-      "description": "detailed visual action"
+      "description": "detailed visual description"
     }},
     {{
       "scene": 3,
       "purpose": "escalation",
-      "description": "detailed visual action"
+      "description": "detailed visual description"
     }},
     {{
       "scene": 4,
       "purpose": "resolution",
-      "description": "detailed visual action"
+      "description": "detailed visual description"
     }}
   ]
 }}
+
+IMPORTANT:
+
+The four scenes MUST be connected.
+
+Scene 2 must continue directly from Scene 1.
+
+Scene 3 must continue directly from Scene 2.
+
+Scene 4 must continue directly from Scene 3.
+
+Do not create four unrelated ideas.
+
+Do not add dialogue.
+
+Do not add narration.
+
+Do not add subtitles.
+
+Do not add text.
+
+Make the story visually expressive, cute, funny or emotional.
 """
 
-    response = client.models.generate_content(
-        model="gemini-3.5-flash-lite",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json"
-        )
-    )
+    try:
 
-    if not response.text:
-        print("ERROR: Gemini returned no story.")
+        response = client.models.generate_content(
+            model="gemini-3.5-flash-lite",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
+        )
+
+    except Exception as error:
+
+        print("ERROR: Gemini story generation failed.")
+        print(error)
+
         sys.exit(1)
 
     try:
+
         story = json.loads(response.text)
-    except json.JSONDecodeError:
-        print("ERROR: Gemini returned invalid JSON.")
+
+    except Exception as error:
+
+        print("ERROR: Gemini did not return valid JSON.")
         print(response.text)
+        print(error)
+
         sys.exit(1)
 
-    if len(story.get("scenes", [])) != 4:
+    # --------------------------------------------------------
+    # Validate story
+    # --------------------------------------------------------
+
+    scenes = story.get("scenes", [])
+
+    if len(scenes) != 4:
+
         print("ERROR: Story must contain exactly 4 scenes.")
-        print(story)
+
+        print(json.dumps(
+            story,
+            ensure_ascii=False,
+            indent=2
+        ))
+
         sys.exit(1)
 
-    print("================================")
-    print("NEW STORY")
-    print("Title:", story.get("title"))
-    print("Characters:", story.get("characters"))
-    print("Goal:", story.get("story_goal"))
-    print("Problem:", story.get("problem"))
-    print("Ending:", story.get("ending"))
-    print("================================")
-
-    for scene in story["scenes"]:
-        print(
-            f"Scene {scene['scene']}: "
-            f"{scene['description']}"
+    allowed_characters = {
+        character.get("name")
+        for character in CHARACTER_BIBLE.get(
+            "characters",
+            []
         )
+    }
+
+    used_characters = set(
+        story.get("characters", [])
+    )
+
+    if not used_characters.issubset(
+        allowed_characters
+    ):
+
+        print(
+            "ERROR: Gemini invented a character "
+            "not present in character_bible.json."
+        )
+
+        print("Allowed:")
+        print(allowed_characters)
+
+        print("Used:")
+        print(used_characters)
+
+        sys.exit(1)
+
+    print("")
+    print("========================================")
+    print("STORY")
+    print("========================================")
+
+    print(
+        json.dumps(
+            story,
+            ensure_ascii=False,
+            indent=2
+        )
+    )
+
+    print("========================================")
+    print("")
 
     return story
 
 
 # ============================================================
-# CHOOSE THE CORRECT OFFICIAL REFERENCE
+# GET REFERENCE IMAGE
 # ============================================================
 
 def get_reference_image(story):
 
-    characters = story.get("characters", [])
+    characters = story.get(
+        "characters",
+        []
+    )
 
+    # Baby + Grandma
     if "grandma" in characters:
 
-        if not os.path.exists(BABY_GRANDMA_IMAGE):
-            print("ERROR: baby_grandma.png not found.")
-            sys.exit(1)
+        image_path = BABY_GRANDMA_IMAGE
 
-        return BABY_GRANDMA_IMAGE
+    # Baby only
+    else:
 
-    if not os.path.exists(BABY_IMAGE):
-        print("ERROR: baby.png not found.")
+        image_path = BABY_IMAGE
+
+    if not os.path.exists(image_path):
+
+        print(
+            f"ERROR: Reference image not found: "
+            f"{image_path}"
+        )
+
         sys.exit(1)
 
-    return BABY_IMAGE
+    return image_path
 
 
 # ============================================================
-# VEO MASTER PROMPT
+# CREATE VEO PROMPT
 # ============================================================
 
-def create_video_prompt(story, current_scene):
+def create_video_prompt(
+    story,
+    scene,
+    previous_scene,
+    next_scene
+):
 
-    scenes = story["scenes"]
-    number = current_scene["scene"]
+    characters = story.get(
+        "characters",
+        []
+    )
 
-    previous_context = ""
-
-    for scene in scenes:
-        if scene["scene"] < number:
-            previous_context += (
-                f"\nScene {scene['scene']}:\n"
-                f"{scene['description']}\n"
-            )
-
-    next_context = ""
-
-    for scene in scenes:
-        if scene["scene"] > number:
-            next_context = scene["description"]
-            break
+    character_names = ", ".join(
+        characters
+    )
 
     prompt = f"""
-Create an 8-second vertical 3D cartoon animation.
+Create ONE scene from a continuous silent 3D animated short movie.
 
-This is SCENE {number} of ONE continuous silent short movie.
+This is NOT a standalone video.
 
-==================================================
-OFFICIAL CHARACTER BIBLE
-==================================================
-
-{CHARACTER_BIBLE}
+The scene must continue naturally from the previous scene
+and prepare the next scene.
 
 ==================================================
 STORY
 ==================================================
 
 Title:
-{story.get("title")}
+{story.get("title", "")}
+
+Characters:
+{character_names}
 
 Location:
-{story.get("location")}
+{story.get("location", "")}
 
 Story goal:
-{story.get("story_goal")}
+{story.get("story_goal", "")}
 
 Main problem:
-{story.get("problem")}
+{story.get("problem", "")}
 
 Ending:
-{story.get("ending")}
+{story.get("ending", "")}
 
 ==================================================
-PREVIOUS STORY EVENTS
+CHARACTER BIBLE
 ==================================================
 
-{previous_context}
+{CHARACTER_BIBLE_TEXT}
+
+==================================================
+PREVIOUS SCENE
+==================================================
+
+{previous_scene}
 
 ==================================================
 CURRENT SCENE
 ==================================================
 
-{current_scene["description"]}
+{scene.get("description", "")}
 
 ==================================================
-NEXT STORY BEAT
+NEXT SCENE
 ==================================================
 
-{next_context}
+{next_scene}
 
 ==================================================
-ABSOLUTE CONTINUITY RULES
+VISUAL RULES
 ==================================================
 
 Use the provided reference image as the identity reference.
 
-The characters MUST remain exactly the same.
+Keep the exact same characters.
 
-DO NOT change:
-- face
-- facial proportions
-- eyes
-- eye color
-- hair
-- curls
-- skin
-- age
-- body shape
-- height relationship
-- clothes
-- clothing colors
-- clothing patterns
-- earrings
-- accessories
+Do NOT redesign the characters.
 
-The baby MUST wear the exact same outfit.
+Do NOT change their faces.
 
-Grandma MUST wear the exact same outfit.
+Do NOT change their eyes.
 
-Do not add or remove clothing.
+Do NOT change their hair.
 
-Do not change hairstyles.
+Do NOT change their clothes.
 
-Do not change character designs.
+Do NOT change their age.
 
-Do not introduce new people.
+Do NOT change their body proportions.
 
-Keep the same location and visual environment unless the
-story explicitly requires a logical location change.
+Preserve character identity exactly.
+
+Keep the environment visually consistent.
 
 Keep important objects consistent.
 
-This is a continuation, NOT a new story.
+This is a silent visual story.
 
-Do not restart the action.
+NO dialogue.
 
-==================================================
-SILENT PERFORMANCE
-==================================================
+NO speech.
 
-No speech.
-No talking.
-No dialogue.
-No lip-sync.
-No subtitles.
-No text on screen.
+NO lip-sync.
 
-The baby never speaks.
+NO subtitles.
 
-Grandma never speaks.
+NO text on screen.
 
-Tell the story only through:
-- facial expressions
-- eye movements
-- gestures
-- body language
-- movement
-- reactions
-- interaction with objects
+The characters communicate only through:
 
-Make the action clear, cute and emotionally readable.
+facial expressions,
+eye contact,
+gestures,
+body language,
+movement,
+and reactions.
 
-High-quality polished 3D animated movie style.
+Style:
+
+cute polished high-quality 3D animated movie.
 
 Warm cinematic lighting.
 
-Vertical 9:16 TikTok composition.
+Natural animation.
 
-The final frame should naturally lead into the next scene
-when there is one.
+Expressive facial reactions.
+
+Vertical 9:16 composition.
+
+The scene must feel like part of ONE continuous movie.
 """
 
     return prompt
 
 
 # ============================================================
-# GENERATE ONE SCENE
+# GENERATE ONE VEO SCENE
 # ============================================================
 
-def generate_scene(client, story, scene):
+def generate_scene_video(
+    prompt,
+    reference_image,
+    output_path
+):
 
-    scene_number = scene["scene"]
+    print("")
+    print("Generating Veo scene...")
+    print("")
 
-    raw_file = f"scene_{scene_number}_raw.mp4"
-    output_file = f"scene_{scene_number}.mp4"
+    try:
 
-    print("================================")
-    print(f"Generating scene {scene_number}")
-    print("================================")
-
-    reference_path = get_reference_image(story)
-
-    reference_image = types.Image.from_file(
-        location=reference_path
-    )
-
-    prompt = create_video_prompt(
-        story,
-        scene
-    )
-
-    operation = client.models.generate_videos(
-        model="veo-3.1-lite-generate-preview",
-        prompt=prompt,
-        image=reference_image,
-        config=types.GenerateVideosConfig(
-            aspect_ratio="9:16",
-            resolution="720p",
-            number_of_videos=1,
-            duration_seconds=8,
-        ),
-    )
-
-    while not operation.done:
-
-        print(
-            f"Waiting for Veo scene {scene_number}..."
+        image = types.Image.from_file(
+            location=reference_image
         )
 
-        time.sleep(10)
+        operation = client.models.generate_videos(
 
-        operation = client.operations.get(operation)
+            model="veo-3.1-lite-generate-preview",
 
-    if not operation.response:
+            prompt=prompt,
 
-        print(
-            f"ERROR: Veo returned no response for scene {scene_number}."
+            image=image,
+
+            config=types.GenerateVideosConfig(
+                aspect_ratio="9:16",
+                resolution="720p",
+                number_of_videos=1,
+                duration_seconds=8
+            )
         )
+
+    except Exception as error:
+
+        print("ERROR: Veo generation failed.")
+        print(error)
 
         sys.exit(1)
 
-    generated_video = (
-        operation.response.generated_videos[0]
+    print("Waiting for Veo...")
+
+    while not operation.done:
+
+        time.sleep(10)
+
+        operation = client.operations.get(
+            operation
+        )
+
+    if operation.error:
+
+        print("ERROR: Veo operation failed.")
+        print(operation.error)
+
+        sys.exit(1)
+
+    try:
+
+        video = operation.response.generated_videos[0]
+
+        client.files.download(
+            file=video.video,
+            download_path=output_path
+        )
+
+    except Exception as error:
+
+        print("ERROR: Could not download generated video.")
+        print(error)
+
+        sys.exit(1)
+
+    print(
+        f"Scene saved: {output_path}"
     )
 
-    client.files.download(
-        file=generated_video.video,
-        destination=raw_file
-    )
+
+# ============================================================
+# REMOVE AUDIO
+# ============================================================
+
+def remove_audio(
+    input_file,
+    output_file
+):
 
     command = [
         "ffmpeg",
         "-y",
         "-i",
-        raw_file,
+        input_file,
         "-an",
         "-c:v",
-        "libx264",
-        "-pix_fmt",
-        "yuv420p",
+        "copy",
         output_file
     ]
 
@@ -522,36 +593,37 @@ def generate_scene(client, story, scene):
 
     if result.returncode != 0:
 
-        print("FFmpeg error:")
+        print(
+            "ERROR: FFmpeg audio removal failed."
+        )
+
         print(result.stderr)
 
         sys.exit(1)
 
-    print(
-        f"Scene {scene_number} created successfully."
-    )
-
-    return output_file
-
 
 # ============================================================
-# COMBINE
+# COMBINE SCENES
 # ============================================================
 
-def combine_videos(video_files):
+def combine_videos(scene_files):
 
-    print("================================")
+    print("")
     print("Combining scenes...")
-    print("================================")
+    print("")
 
     concat_file = "videos.txt"
 
-    with open(concat_file, "w") as file:
+    with open(
+        concat_file,
+        "w",
+        encoding="utf-8"
+    ) as file:
 
-        for video in video_files:
+        for scene_file in scene_files:
 
             file.write(
-                f"file '{os.path.abspath(video)}'\n"
+                f"file '{os.path.abspath(scene_file)}'\n"
             )
 
     command = [
@@ -563,12 +635,9 @@ def combine_videos(video_files):
         "0",
         "-i",
         concat_file,
-        "-c:v",
-        "libx264",
-        "-pix_fmt",
-        "yuv420p",
-        "-an",
-        OUTPUT_FILE
+        "-c",
+        "copy",
+        OUTPUT_VIDEO
     ]
 
     result = subprocess.run(
@@ -579,15 +648,19 @@ def combine_videos(video_files):
 
     if result.returncode != 0:
 
-        print("FFmpeg combine error:")
+        print(
+            "ERROR: Could not combine videos."
+        )
+
         print(result.stderr)
 
         sys.exit(1)
 
-    print("================================")
-    print("FINAL VIDEO CREATED")
-    print("File:", OUTPUT_FILE)
-    print("================================")
+    print("")
+    print(
+        f"FINAL VIDEO CREATED: {OUTPUT_VIDEO}"
+    )
+    print("")
 
 
 # ============================================================
@@ -596,33 +669,96 @@ def combine_videos(video_files):
 
 def main():
 
-    if not API_KEY:
+    print("")
+    print("========================================")
+    print("     SILENT BABY STORY BOT")
+    print("========================================")
+    print("")
 
-        print("ERROR: GEMINI_API_KEY is missing.")
-        sys.exit(1)
+    # 1. Gemini creates one connected story
+    story = generate_story()
 
-    print("GEMINI_API_KEY found.")
-    print("Starting connected silent story bot...")
-
-    client = genai.Client(
-        api_key=API_KEY
+    # 2. Select official reference image
+    reference_image = get_reference_image(
+        story
     )
 
-    story = generate_story(client)
+    print(
+        f"Reference image: {reference_image}"
+    )
 
-    video_files = []
+    scene_files = []
 
-    for scene in story["scenes"]:
+    scenes = story["scenes"]
 
-        video = generate_scene(
-            client,
+    # 3. Generate four connected Veo scenes
+    for index, scene in enumerate(
+        scenes
+    ):
+
+        previous_scene = ""
+
+        next_scene = ""
+
+        if index > 0:
+            previous_scene = scenes[
+                index - 1
+            ].get(
+                "description",
+                ""
+            )
+
+        if index < len(scenes) - 1:
+            next_scene = scenes[
+                index + 1
+            ].get(
+                "description",
+                ""
+            )
+
+        prompt = create_video_prompt(
             story,
-            scene
+            scene,
+            previous_scene,
+            next_scene
         )
 
-        video_files.append(video)
+        raw_file = (
+            f"scene_{index + 1}_raw.mp4"
+        )
 
-    combine_videos(video_files)
+        clean_file = (
+            f"scene_{index + 1}.mp4"
+        )
+
+        generate_scene_video(
+            prompt,
+            reference_image,
+            raw_file
+        )
+
+        remove_audio(
+            raw_file,
+            clean_file
+        )
+
+        scene_files.append(
+            clean_file
+        )
+
+    # 4. Combine everything
+    combine_videos(
+        scene_files
+    )
+
+    print("")
+    print("========================================")
+    print("DONE")
+    print("========================================")
+    print(
+        f"Output: {OUTPUT_VIDEO}"
+    )
+    print("")
 
 
 if __name__ == "__main__":
