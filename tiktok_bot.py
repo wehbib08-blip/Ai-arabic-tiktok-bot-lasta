@@ -22,9 +22,10 @@ TREND_GEO = os.getenv("TREND_GEO", "US")
 OUTPUT_VIDEO = "tiktok_video.mp4"
 OUTPUT_METADATA = "video_metadata.json"
 
-# Alternate the two content pillars daily (same UTC date = same category).
+# Rotate three short-form formats daily; same UTC date = same format on reruns.
 TODAY_UTC = datetime.now(timezone.utc).date()
-DAILY_CATEGORY = "FUNNY_AI" if TODAY_UTC.toordinal() % 2 == 0 else "SATISFYING"
+FORMAT_ROTATION = ["FUNNY_AI_STORY", "SLOW_MOTION_ZOOM", "SATISFYING_CINEMATIC"]
+DAILY_CATEGORY = FORMAT_ROTATION[TODAY_UTC.toordinal() % len(FORMAT_ROTATION)]
 
 # One optional extension creates a longer video (up to 20 seconds).
 # Set VIDEO_EXTENSIONS=0 to generate a single 3-10 second clip.
@@ -91,56 +92,63 @@ def choose_trend_brief(trends):
 
     prompt = f"""
 You are the creative director of a premium viral AI short-video channel.
-The channel publishes ONE original vertical video per day. The ONLY two content
-pillars are Funny AI and Satisfying. Today's required pillar is: {DAILY_CATEGORY}.
+The channel publishes ONE original vertical video per day.
+Today's required format is exactly: {DAILY_CATEGORY}. Do not blend formats.
 
-CATEGORY RULES:
-- If today's pillar is FUNNY_AI: create a genuinely funny visual AI comedy gag.
-  Use an unexpected but instantly understandable situation, expressive characters
-  or photorealistic animals, excellent comic timing, escalating absurdity, and a
-  clear visual punchline. No generic cute montage, no slow intro, no random cuts.
-  The joke must be understandable with the sound off.
-- If today's pillar is SATISFYING: create an intensely satisfying tactile visual
-  process: precision cutting, clean peeling, perfect stacking, smooth pouring,
-  mesmerizing shaping, pressure/texture transformation, glossy materials, or
-  immaculate repetitive motion. The action must be physically coherent and the
-  payoff must be visually rewarding. Include crisp natural ASMR sound cues.
-- Do NOT mix the two pillars in one video. Do NOT create inspirational stories,
-  fantasy landscapes, generic cinematic montages, or talking-head content.
+FORMAT A — FUNNY_AI_STORY:
+Create a genuinely funny mini-story with one main character, one simple goal,
+one escalating complication, and one clear visual punchline. Use expressive
+reactions and excellent comic timing. Make the joke understandable without sound.
+
+FORMAT B — SLOW_MOTION_ZOOM:
+Create a visually striking single event built around an extreme macro close-up,
+a deliberate smooth push-in or pull-back, a dramatic slow-motion moment, crisp
+synchronized sound design, and a strong visual reveal. Examples: a harmless
+fictional object bursting into colorful powder, a fruit splitting open in a
+surreal clean studio, a droplet hitting liquid, or a beautiful material reveal.
+No real injuries or dangerous events. Zoom must be smooth, never jittery.
+
+FORMAT C — SATISFYING_CINEMATIC:
+Create a highly satisfying tactile process such as precise cutting of safe soft
+materials, smooth pouring, perfect stacking, peeling, shaping, glossy liquid
+movement, or clean texture transformations. Use macro details, controlled
+camera movement, crisp ASMR sound and a rewarding final result.
 
 TREND SIGNALS:
 {trend_lines}
 
 {source_note}
 
-RETENTION AND VISUAL QUALITY:
-Create one original concept designed to stop scrolling in the FIRST 0.5-1 second.
-The first frame must already show an intriguing action or absurd situation.
-Build the clip as 4 connected visual beats within one continuous scene:
-1) instant hook,
-2) action begins immediately,
-3) escalation / close-up payoff,
-4) memorable ending that can loop naturally.
-Use dynamic but controlled camera movement, macro detail where useful, rich
-realistic textures, clean composition, strong lighting, and fluid motion.
-Make the main subject large and clear in a 9:16 frame. No empty establishing shot.
-Use natural synchronized sound effects / ASMR appropriate to the action.
-No narration, no subtitles, no readable text, no logos, no watermarks.
-Avoid dangerous stunts, gore, copyrighted characters, and copying any creator's video.
+MOTION, CONTINUITY AND EDITING RULES:
+- First frame must contain the hook; no slow establishing shot.
+- Describe actions chronologically, second by second, for a coherent 10-second clip.
+- Use one continuous scene or at most two connected shots.
+- Keep subject identity, proportions, texture, colors, props and setting consistent.
+- Object interactions must obey simple, believable physical motion.
+- No teleporting, morphing, random scene changes, warped anatomy, or camera jitter.
+- Choose one clear camera plan: locked macro, smooth dolly-in, smooth dolly-out,
+  or one controlled tracking move. Never combine conflicting camera moves.
+- For slow motion, specify exactly which brief moment is slowed; surrounding action
+  remains at natural speed.
+- Add synchronized sound effects: comic accents for comedy, crisp texture sounds
+  for satisfying, and cinematic whoosh/impact accents for dramatic reveals.
+- Vertical 9:16, premium lighting, detailed textures, clean composition.
+- No subtitles, readable text, logos, watermarks, copyrighted characters, gore,
+  dangerous stunts, or copying any creator's exact video.
 
 Return ONLY valid JSON with this exact structure:
 {{
   "title": "short internal title",
-  "format": "Funny AI or Satisfying",
-  "trend_basis": "which signal inspired the idea, or say evergreen concept",
+  "format": "{DAILY_CATEGORY}",
+  "trend_basis": "trend inspiration or evergreen concept",
   "concept": "one-sentence description",
-  "video_prompt": "detailed generation prompt for a 9:16 vertical video, describing the exact subject, action, 4 connected beats, camera, lighting, texture, and synchronized sound",
+  "video_prompt": "detailed 10-second vertical video prompt with exact subject, chronological action by seconds, camera move, motion continuity, lighting, and synchronized sound design",
   "caption": "short catchy TikTok caption",
-  "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5"]
+  "hashtags": ["#AIVideo", "#FunnyAI", "#Satisfying", "#SlowMotion", "#TikTok"]
 }}
 
-The video_prompt must describe one coherent, high-quality 10-second clip that can
-be extended once. Prioritize visual impact and replay value over complexity.
+Make the concept instantly understandable and visually memorable. Keep characters
+and moving objects few so the video model can maintain coherent motion.
 """
 
     result = client.models.generate_content(
@@ -223,10 +231,13 @@ def generate_video(prompt, output_path):
             model=VIDEO_MODEL,
             previous_interaction_id=previous_id,
             input=(
-                "Continue this exact video seamlessly for up to 10 more seconds. Preserve the selected content pillar and "
-                "Preserve the same subject, visual identity, environment, motion logic, "
-                "lighting and audio mood. Add a fresh visual development and finish "
-                "with a stronger visual punchline for Funny AI or a more rewarding tactile payoff for Satisfying. ""Finish with a memorable loop-friendly ending. Keep it vertical 9:16."
+                f"Continue this exact {DAILY_CATEGORY} video seamlessly for up to 10 more seconds. "
+                "Preserve subject identity, proportions, colors, props, setting, lighting "
+                "and visual style. Continue the same action logically; do not introduce "
+                "unrelated subjects or change scenes. Keep movement smooth and physically "
+                "coherent. For comedy, strengthen the punchline; for slow-motion zoom, "
+                "complete the controlled camera reveal; for satisfying, deliver a rewarding "
+                "tactile payoff. Finish with a memorable loop-friendly ending. Vertical 9:16."
             ),
             response_format={
                 "type": "video",
@@ -254,7 +265,7 @@ def main():
 
     trends = get_google_trends()
     print(f"Trend signals collected: {len(trends)}")
-    print(f"Daily category: {DAILY_CATEGORY}")
+    print("Daily category: FUNNY AI STORY")
 
     idea, trends = choose_trend_brief(trends)
 
