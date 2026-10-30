@@ -22,21 +22,17 @@ TREND_GEO = os.getenv("TREND_GEO", "US")
 OUTPUT_VIDEO = "tiktok_video.mp4"
 OUTPUT_METADATA = "video_metadata.json"
 
+# Alternate the two content pillars daily (same UTC date = same category).
+TODAY_UTC = datetime.now(timezone.utc).date()
+DAILY_CATEGORY = "FUNNY_AI" if TODAY_UTC.toordinal() % 2 == 0 else "SATISFYING"
+
 # One optional extension creates a longer video (up to 20 seconds).
 # Set VIDEO_EXTENSIONS=0 to generate a single 3-10 second clip.
 VIDEO_EXTENSIONS = int(os.getenv("VIDEO_EXTENSIONS", "1"))
 
 FALLBACK_CATEGORIES = [
-    "surreal AI transformations",
-    "impossible satisfying processes",
-    "cinematic fantasy worlds",
-    "photorealistic animals doing unexpected things",
-    "futuristic inventions and places",
-    "tiny worlds and miniature scenes",
-    "visual optical illusions",
-    "before-and-after transformations",
-    "unexpected food and object transformations",
-    "dreamlike nature and space scenes",
+    "Funny AI: absurd visual comedy with a strong punchline",
+    "Satisfying: tactile, hypnotic visual processes with crisp ASMR-style sound",
 ]
 
 if not GEMINI_API_KEY:
@@ -94,37 +90,57 @@ def choose_trend_brief(trends):
         )
 
     prompt = f"""
-You are the creative director of a high-quality AI short-video channel.
-The channel publishes ONE original AI-generated vertical video per day.
-The content mix is broad: surreal, cinematic, satisfying, funny, futuristic,
-animals, transformations, visual illusions, fantasy, food, nature and other
-visually compelling formats. Do not make every video a story.
+You are the creative director of a premium viral AI short-video channel.
+The channel publishes ONE original vertical video per day. The ONLY two content
+pillars are Funny AI and Satisfying. Today's required pillar is: {DAILY_CATEGORY}.
+
+CATEGORY RULES:
+- If today's pillar is FUNNY_AI: create a genuinely funny visual AI comedy gag.
+  Use an unexpected but instantly understandable situation, expressive characters
+  or photorealistic animals, excellent comic timing, escalating absurdity, and a
+  clear visual punchline. No generic cute montage, no slow intro, no random cuts.
+  The joke must be understandable with the sound off.
+- If today's pillar is SATISFYING: create an intensely satisfying tactile visual
+  process: precision cutting, clean peeling, perfect stacking, smooth pouring,
+  mesmerizing shaping, pressure/texture transformation, glossy materials, or
+  immaculate repetitive motion. The action must be physically coherent and the
+  payoff must be visually rewarding. Include crisp natural ASMR sound cues.
+- Do NOT mix the two pillars in one video. Do NOT create inspirational stories,
+  fantasy landscapes, generic cinematic montages, or talking-head content.
 
 TREND SIGNALS:
 {trend_lines}
 
 {source_note}
 
-Create one original, highly visual concept suitable for TikTok/Reels/Shorts.
-Prioritize an immediate visual hook in the first second, a clear visual payoff,
-strong motion, and a loopable or surprising ending.
-Do not copy a creator's exact video, copyrighted characters, logos, or a specific
-living artist's style. Do not include dangerous stunts or misleading real-world claims.
-Avoid relying on readable text inside the generated video.
+RETENTION AND VISUAL QUALITY:
+Create one original concept designed to stop scrolling in the FIRST 0.5-1 second.
+The first frame must already show an intriguing action or absurd situation.
+Build the clip as 4 connected visual beats within one continuous scene:
+1) instant hook,
+2) action begins immediately,
+3) escalation / close-up payoff,
+4) memorable ending that can loop naturally.
+Use dynamic but controlled camera movement, macro detail where useful, rich
+realistic textures, clean composition, strong lighting, and fluid motion.
+Make the main subject large and clear in a 9:16 frame. No empty establishing shot.
+Use natural synchronized sound effects / ASMR appropriate to the action.
+No narration, no subtitles, no readable text, no logos, no watermarks.
+Avoid dangerous stunts, gore, copyrighted characters, and copying any creator's video.
 
 Return ONLY valid JSON with this exact structure:
 {{
   "title": "short internal title",
-  "format": "e.g. surreal transformation / satisfying / cinematic fantasy",
-  "trend_basis": "which signal inspired the idea, or say broad evergreen concept",
+  "format": "Funny AI or Satisfying",
+  "trend_basis": "which signal inspired the idea, or say evergreen concept",
   "concept": "one-sentence description",
-  "video_prompt": "detailed generation prompt for a 9:16 video, with clear subject motion, camera direction, lighting, environment, visual style, and natural audio",
-  "caption": "short TikTok caption",
+  "video_prompt": "detailed generation prompt for a 9:16 vertical video, describing the exact subject, action, 4 connected beats, camera, lighting, texture, and synchronized sound",
+  "caption": "short catchy TikTok caption",
   "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5"]
 }}
 
-The video prompt should describe one coherent 10-second clip that can be extended
-once. Make it visually understandable without narration or subtitles.
+The video_prompt must describe one coherent, high-quality 10-second clip that can
+be extended once. Prioritize visual impact and replay value over complexity.
 """
 
     result = client.models.generate_content(
@@ -207,10 +223,10 @@ def generate_video(prompt, output_path):
             model=VIDEO_MODEL,
             previous_interaction_id=previous_id,
             input=(
-                "Continue this exact video seamlessly for up to 10 more seconds. "
+                "Continue this exact video seamlessly for up to 10 more seconds. Preserve the selected content pillar and "
                 "Preserve the same subject, visual identity, environment, motion logic, "
                 "lighting and audio mood. Add a fresh visual development and finish "
-                "with a satisfying, memorable, loop-friendly ending. Keep it vertical 9:16."
+                "with a stronger visual punchline for Funny AI or a more rewarding tactile payoff for Satisfying. ""Finish with a memorable loop-friendly ending. Keep it vertical 9:16."
             ),
             response_format={
                 "type": "video",
@@ -238,6 +254,7 @@ def main():
 
     trends = get_google_trends()
     print(f"Trend signals collected: {len(trends)}")
+    print(f"Daily category: {DAILY_CATEGORY}")
 
     idea, trends = choose_trend_brief(trends)
 
@@ -249,6 +266,7 @@ def main():
     metadata = {
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "trend_geo": TREND_GEO,
+        "daily_category": DAILY_CATEGORY,
         "trend_source": "Google Trends RSS (search-interest signal, not TikTok analytics)",
         "trend_signals": trends,
         "idea": idea,
