@@ -1,11 +1,23 @@
-name: TikTok Bot
+name: AI Viral Video Bot
 
 on:
   workflow_dispatch:
+  schedule:
+    # 06:00 UTC = 08:00 Lebanon during standard time (UTC+2).
+    # During daylight-saving time it runs at 09:00 Lebanon time.
+    - cron: "0 6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-viral-video-bot
+  cancel-in-progress: false
 
 jobs:
   generate-video:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
 
     steps:
       - name: Checkout repository
@@ -15,6 +27,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
 
       - name: Install FFmpeg
         run: |
@@ -26,14 +39,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Generate video with Veo
+      - name: Generate daily AI video
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_TEXT_MODEL: gemini-3.5-flash
+          GEMINI_VIDEO_MODEL: gemini-omni-1.1-flash
+          TREND_GEO: US
+          VIDEO_EXTENSIONS: "1"
         run: |
           python tiktok_bot.py
 
-      - name: Upload story video
+      - name: Upload generated video and metadata
         uses: actions/upload-artifact@v4
         with:
-          name: tiktok-story
-          path: tiktok_story.mp4
+          name: ai-viral-video-${{ github.run_number }}
+          path: |
+            tiktok_video.mp4
+            video_metadata.json
+          if-no-files-found: error
+          retention-days: 14
