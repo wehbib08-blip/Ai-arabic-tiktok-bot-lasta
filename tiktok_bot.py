@@ -1,780 +1,230 @@
 import os
 import sys
 import json
-import time
-import subprocess
+import base64
+import random
+import re
+import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
 
+import requests
 from google import genai
 from google.genai import types
 
-
 # ============================================================
-# FILES
-# ============================================================
-
-CHARACTER_BIBLE_FILE = "character_bible.json"
-MASTER_PROMPT_FILE = "master_prompt.txt"
-
-BABY_IMAGE = "baby.png"
-BABY_GRANDMA_IMAGE = "baby_grandma.png"
-
-OUTPUT_VIDEO = "tiktok_story.mp4"
-
-# QUALITY TEST: generate only the first scene for now.
-# Change to 8 after we approve the video quality.
-NUMBER_OF_SCENES = 1
-
-# Retry temporary Veo quota/rate-limit errors instead of failing immediately.
-VEO_MAX_RETRIES = 3
-VEO_RETRY_DELAYS = [60, 120, 180]
-
-
-# ============================================================
-# API
+# CONFIGURATION
 # ============================================================
 
-API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.8-flash")
+VIDEO_MODEL = os.getenv("GEMINI_VIDEO_MODEL", "gemini-omni-1.1-flash")
+TREND_GEO = os.getenv("TREND_GEO", "US")
+OUTPUT_VIDEO = "tiktok_video.mp4"
+OUTPUT_METADATA = "video_metadata.json"
 
-if not API_KEY:
-    print("ERROR: GEMINI_API_KEY is missing.")
+# One optional extension creates a longer video (up to 20 seconds).
+# Set VIDEO_EXTENSIONS=0 to generate a single 3-10 second clip.
+VIDEO_EXTENSIONS = int(os.getenv("VIDEO_EXTENSIONS", "1"))
+
+FALLBACK_CATEGORIES = [
+    "surreal AI transformations",
+    "impossible satisfying processes",
+    "cinematic fantasy worlds",
+    "photorealistic animals doing unexpected things",
+    "futuristic inventions and places",
+    "tiny worlds and miniature scenes",
+    "visual optical illusions",
+    "before-and-after transformations",
+    "unexpected food and object transformations",
+    "dreamlike nature and space scenes",
+]
+
+if not GEMINI_API_KEY:
+    print("ERROR: GEMINI_API_KEY secret is missing.")
     sys.exit(1)
 
-client = genai.Client(api_key=API_KEY)
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 # ============================================================
-# LOAD CHARACTER BIBLE
+# TREND SIGNALS
 # ============================================================
 
-def load_character_bible():
-
-    if not os.path.exists(CHARACTER_BIBLE_FILE):
-        print(f"ERROR: {CHARACTER_BIBLE_FILE} not found.")
-        sys.exit(1)
+def get_google_trends():
+    """
+    Fetches Google Trends' public trending-search RSS feed.
+    This is a trend signal, NOT TikTok's private/internal trending data.
+    """
+    url = f"https://trends.google.com/trending/rss?geo={TREND_GEO}"
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; TrendResearchBot/1.0)"}
 
     try:
-        with open(
-            CHARACTER_BIBLE_FILE,
-            "r",
-            encoding="utf-8"
-        ) as file:
+        response = requests.get(url, headers=headers, timeout=25)
+        response.raise_for_status()
+        root = ET.fromstring(response.content)
+        items = []
 
-            return json.load(file)
+        for item in root.findall(".//item")[:15]:
+            title = item.findtext("title", default="").strip()
+            traffic = item.findtext("{https://trends.google.com/trending/rss}approx_traffic", default="")
+            if title:
+                items.append({"topic": title, "approx_traffic": traffic})
 
-    except Exception as error:
-
-        print("ERROR: Could not read character_bible.json")
-        print(error)
-
-        sys.exit(1)
-
-
-# ============================================================
-# LOAD MASTER PROMPT
-# ============================================================
-
-def load_master_prompt():
-
-    if not os.path.exists(MASTER_PROMPT_FILE):
-        print(f"ERROR: {MASTER_PROMPT_FILE} not found.")
-        sys.exit(1)
-
-    try:
-
-        with open(
-            MASTER_PROMPT_FILE,
-            "r",
-            encoding="utf-8"
-        ) as file:
-
-            return file.read()
-
-    except Exception as error:
-
-        print("ERROR: Could not read master_prompt.txt")
-        print(error)
-
-        sys.exit(1)
+        return items
+    except Exception as exc:
+        print(f"Trend RSS unavailable; using broad AI-video categories. Details: {exc}")
+        return []
 
 
-CHARACTER_BIBLE = load_character_bible()
-
-MASTER_PROMPT = load_master_prompt()
-
-CHARACTER_BIBLE_TEXT = json.dumps(
-    CHARACTER_BIBLE,
-    ensure_ascii=False,
-    indent=2
-)
-
-
-# ============================================================
-# GENERATE STORY
-# ============================================================
-
-def generate_story():
-
-    print("")
-    print("Generating a new story with Gemini...")
-    print("")
+def choose_trend_brief(trends):
+    if trends:
+        trend_lines = "\n".join(
+            f"- {x['topic']} (approx. search traffic: {x['approx_traffic'] or 'not provided'})"
+            for x in trends
+        )
+        source_note = (
+            f"Use these current Google Trends search signals for {TREND_GEO} as inspiration. "
+            "Do not force an unrelated trend into the video."
+        )
+    else:
+        trend_lines = "\n".join(f"- {x}" for x in FALLBACK_CATEGORIES)
+        source_note = (
+            "Live trend data was unavailable. Choose one broadly appealing AI-video concept "
+            "from these categories; do not claim it is currently trending."
+        )
 
     prompt = f"""
-{MASTER_PROMPT}
+You are the creative director of a high-quality AI short-video channel.
+The channel publishes ONE original AI-generated vertical video per day.
+The content mix is broad: surreal, cinematic, satisfying, funny, futuristic,
+animals, transformations, visual illusions, fantasy, food, nature and other
+visually compelling formats. Do not make every video a story.
 
-==================================================
-CHARACTER BIBLE
-==================================================
+TREND SIGNALS:
+{trend_lines}
 
-{CHARACTER_BIBLE_TEXT}
+{source_note}
 
-==================================================
-YOUR TASK
-==================================================
+Create one original, highly visual concept suitable for TikTok/Reels/Shorts.
+Prioritize an immediate visual hook in the first second, a clear visual payoff,
+strong motion, and a loopable or surprising ending.
+Do not copy a creator's exact video, copyrighted characters, logos, or a specific
+living artist's style. Do not include dangerous stunts or misleading real-world claims.
+Avoid relying on readable text inside the generated video.
 
-Create ONE completely new visual story with natural sound. No long dialogue.
-
-The story must use ONLY:
-- baby
-- grandma
-
-The story can use:
-- baby alone
-OR
-- baby + grandma
-
-Do NOT use any old Toti characters.
-
-Do NOT invent additional characters.
-
-The story must be one continuous mini movie.
-
-It must contain exactly 8 connected scenes.
-
-Scene 1 = hook and setup.
-Scene 2 = establish the goal.
-Scene 3 = problem appears.
-Scene 4 = emotional reaction.
-Scene 5 = escalation.
-Scene 6 = attempt to solve the problem.
-Scene 7 = resolution begins.
-Scene 8 = memorable emotional or funny ending.
-
-The story must be understandable without long dialogue. Short natural baby words or sounds are allowed.
-
-Return ONLY valid JSON.
-
-Use exactly this structure:
+Return ONLY valid JSON with this exact structure:
 {{
-  "title": "short story title",
-  "characters": [
-    "baby"
-  ],
-  "location": "main location",
-  "story_goal": "what the baby wants",
-  "problem": "main problem",
-  "ending": "how the story ends",
-  "scenes": [
-    {{
-      "scene": 1,
-      "purpose": "hook_setup",
-      "description": "detailed visual description"
-    }},
-    {{
-      "scene": 2,
-      "purpose": "goal",
-      "description": "detailed visual description"
-    }},
-    {{
-      "scene": 3,
-      "purpose": "problem",
-      "description": "detailed visual description"
-    }},
-    {{
-      "scene": 4,
-      "purpose": "reaction",
-      "description": "detailed visual description"
-    }},
-    {{
-      "scene": 5,
-      "purpose": "escalation",
-      "description": "detailed visual description"
-    }},
-    {{
-      "scene": 6,
-      "purpose": "attempt",
-      "description": "detailed visual description"
-    }},
-    {{
-      "scene": 7,
-      "purpose": "resolution",
-      "description": "detailed visual description"
-    }},
-    {{
-      "scene": 8,
-      "purpose": "ending",
-      "description": "detailed visual description"
-    }}
-  ]
+  "title": "short internal title",
+  "format": "e.g. surreal transformation / satisfying / cinematic fantasy",
+  "trend_basis": "which signal inspired the idea, or say broad evergreen concept",
+  "concept": "one-sentence description",
+  "video_prompt": "detailed generation prompt for a 9:16 video, with clear subject motion, camera direction, lighting, environment, visual style, and natural audio",
+  "caption": "short TikTok caption",
+  "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5"]
 }}
 
-IMPORTANT:
-
-All eight scenes MUST be connected.
-
-Every scene must continue directly from the previous scene.
-
-Scene 8 must clearly resolve the main problem and end the story.
-
-Do not create four unrelated ideas.
-
-Do not add long dialogue. Short natural words such as “mama”, “teta”, “no”, or “bye” are allowed when they fit the action.
-
-Do not add narration.
-
-Do not add subtitles.
-
-Do not add text.
-
-Make the story visually expressive, cute, funny or emotional.
-
-Every scene must contain clear physical character actions and interactions.
-Describe what each character DOES, not just what the camera sees.
-Each scene should have at least 2-4 meaningful actions or reactions.
+The video prompt should describe one coherent 10-second clip that can be extended
+once. Make it visually understandable without narration or subtitles.
 """
 
-    try:
+    result = client.models.generate_content(
+        model=TEXT_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(response_mime_type="application/json"),
+    )
 
-        response = client.models.generate_content(
-            model="gemini-3.5-flash-lite",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json"
+    try:
+        idea = json.loads(result.text)
+    except Exception as exc:
+        raise RuntimeError(f"Gemini did not return valid JSON: {result.text}") from exc
+
+    required = ["title", "format", "concept", "video_prompt", "caption", "hashtags"]
+    missing = [key for key in required if not idea.get(key)]
+    if missing:
+        raise RuntimeError(f"Gemini response is missing fields: {missing}")
+
+    if not isinstance(idea["hashtags"], list):
+        raise RuntimeError("hashtags must be a JSON list")
+
+    return idea, trends
+
+
+# ============================================================
+# VIDEO GENERATION
+# ============================================================
+
+def save_video_output(interaction, path):
+    output = getattr(interaction, "output_video", None)
+    data = getattr(output, "data", None) if output else None
+
+    if not data:
+        uri = getattr(output, "uri", None) if output else None
+        if uri:
+            raise RuntimeError(
+                "The video API returned a hosted URI instead of inline video data. "
+                "URI download handling needs to be enabled for this account/response."
             )
-        )
+        raise RuntimeError("Gemini Omni returned no video data.")
 
-    except Exception as error:
-
-        print("ERROR: Gemini story generation failed.")
-        print(error)
-
-        sys.exit(1)
-
-    try:
-
-        story = json.loads(response.text)
-
-    except Exception as error:
-
-        print("ERROR: Gemini did not return valid JSON.")
-        print(response.text)
-        print(error)
-
-        sys.exit(1)
-
-    # --------------------------------------------------------
-    # Validate story
-    # --------------------------------------------------------
-
-    scenes = story.get("scenes", [])
-
-    if len(scenes) != 8:
-
-        print("ERROR: Story must contain exactly 8 scenes.")
-
-        print(json.dumps(
-            story,
-            ensure_ascii=False,
-            indent=2
-        ))
-
-        sys.exit(1)
-
-    allowed_characters = {
-        character.get("name")
-        for character in CHARACTER_BIBLE.get(
-            "characters",
-            []
-        )
-    }
-
-    used_characters = set(
-        story.get("characters", [])
-    )
-
-    if not used_characters.issubset(
-        allowed_characters
-    ):
-
-        print(
-            "ERROR: Gemini invented a character "
-            "not present in character_bible.json."
-        )
-
-        print("Allowed:")
-        print(allowed_characters)
-
-        print("Used:")
-        print(used_characters)
-
-        sys.exit(1)
-
-    print("")
-    print("========================================")
-    print("STORY")
-    print("========================================")
-
-    print(
-        json.dumps(
-            story,
-            ensure_ascii=False,
-            indent=2
-        )
-    )
-
-    print("========================================")
-    print("")
-
-    return story
-
-
-# ============================================================
-# GET REFERENCE IMAGE
-# ============================================================
-
-def get_reference_image(story):
-
-    characters = story.get(
-        "characters",
-        []
-    )
-
-    # Baby + Grandma
-    if "grandma" in characters:
-
-        image_path = BABY_GRANDMA_IMAGE
-
-    # Baby only
+    # SDK output_video.data is base64-encoded according to the Gemini API docs.
+    if isinstance(data, str):
+        video_bytes = base64.b64decode(data)
     else:
+        video_bytes = bytes(data)
 
-        image_path = BABY_IMAGE
+    with open(path, "wb") as file:
+        file.write(video_bytes)
 
-    if not os.path.exists(image_path):
-
-        print(
-            f"ERROR: Reference image not found: "
-            f"{image_path}"
-        )
-
-        sys.exit(1)
-
-    return image_path
+    if os.path.getsize(path) < 10_000:
+        raise RuntimeError("Generated video file is unexpectedly small.")
 
 
-# ============================================================
-# CREATE VEO PROMPT
-# ============================================================
+def generate_video(prompt, output_path):
+    print(f"Generating video with {VIDEO_MODEL}...")
 
-def create_video_prompt(
-    story,
-    scene,
-    previous_scene,
-    next_scene
-):
-
-    characters = story.get(
-        "characters",
-        []
+    interaction = client.interactions.create(
+        model=VIDEO_MODEL,
+        input=prompt,
+        response_format={
+            "type": "video",
+            "aspect_ratio": "9:16",
+            "resolution": "720p",
+        },
     )
 
-    character_names = ", ".join(
-        characters
-    )
+    save_video_output(interaction, output_path)
 
-    prompt = f"""
-Create ONE NEWLY GENERATED 3D ANIMATED SCENE from a continuous animated short movie with synchronized native audio.
+    # Optional conversational extension. Each extension adds up to 10 seconds.
+    previous_id = getattr(interaction, "id", None)
 
-This is NOT a standalone video.
-
-The scene must continue naturally from the previous scene
-and prepare the next scene.
-
-==================================================
-STORY
-==================================================
-
-Title:
-{story.get("title", "")}
-
-Characters:
-{character_names}
-
-Location:
-{story.get("location", "")}
-
-Story goal:
-{story.get("story_goal", "")}
-
-Main problem:
-{story.get("problem", "")}
-
-Ending:
-{story.get("ending", "")}
-
-==================================================
-CHARACTER BIBLE
-==================================================
-
-{CHARACTER_BIBLE_TEXT}
-
-==================================================
-PREVIOUS SCENE
-==================================================
-
-{previous_scene}
-
-==================================================
-CURRENT SCENE
-==================================================
-
-{scene.get("description", "")}
-
-==================================================
-NEXT SCENE
-==================================================
-
-{next_scene}
-
-==================================================
-VISUAL RULES
-==================================================
-
-USE THE PROVIDED IMAGE ONLY AS A CHARACTER IDENTITY REFERENCE.
-
-The reference image is NOT the scene to animate.
-
-DO NOT simply animate, pan, zoom, crop, or move the source image.
-
-DO NOT make the result look like a photograph being moved.
-
-RECREATE the characters as fully animated 3D characters inside a newly generated
-3D environment that fits the current story scene.
-
-The characters must perform real physical actions appropriate to the scene:
-walking, standing, sitting, reaching, picking up objects, turning, hugging,
-running, playing, reacting, crying, laughing, or interacting with each other.
-
-Keep the exact same character identities.
-
-Do NOT redesign the characters.
-
-Do NOT change their faces.
-
-Do NOT change their eyes.
-
-Do NOT change their hair.
-
-Do NOT change their clothes.
-
-Do NOT change their age.
-
-Do NOT change their body proportions.
-
-Preserve character identity exactly.
-
-The environment should be newly generated for the story, while remaining
-consistent from scene to scene.
-
-Keep important story objects consistent.
-
-This is a visual-first animated story with natural sound and short, natural character sounds/words.
-
-Do NOT create long dialogue or conversations.
-
-Short natural words are allowed when they improve the story, especially for the baby,
-for example: "mama", "teta", "no", "bye", "this", or a short happy/excited sound.
-
-No long speeches.
-
-No narration.
-
-No subtitles.
-
-No text on screen.
-
-The baby can make natural toddler sounds, giggles, cries, surprised sounds,
-and very short words.
-
-Grandma may use at most very short natural words when needed.
-
-Include pleasant synchronized audio:
-- gentle cheerful background music appropriate for a cute family animation
-- natural room/environment sounds
-- footsteps and movement sounds when appropriate
-- soft object interaction sounds
-- baby giggles, gasps, or cries when appropriate
-- warm emotional musical ending
-
-Audio must support the story without overpowering the characters.
-
-ACTION DIRECTION:
-
-Prioritize character animation over camera movement.
-
-The main subject must visibly move through the scene.
-
-Show full-body or medium shots when needed so the viewer can clearly see the
-character walking, reaching, carrying, sitting, standing, hugging, reacting,
-or interacting with objects.
-
-Use close-ups only for important emotional reactions.
-
-Avoid long shots where the character barely moves.
-
-Style:
-
-cute polished high-quality 3D animated movie.
-
-Warm cinematic lighting.
-
-Natural animation.
-
-Expressive facial reactions.
-
-Vertical 9:16 composition.
-
-The scene must feel like part of ONE continuous movie.
-
-The reference image must NOT remain visible as a static image.
-Generate the characters anew and animate them performing the described actions.
-
-Generate synchronized native audio for the scene.
-Use gentle background music and appropriate sound effects.
-Do not make the audio silent.
-
-"""
-
-    return prompt
-
-
-# ============================================================
-# GENERATE ONE VEO SCENE
-# ============================================================
-
-def generate_scene_video(
-    prompt,
-    reference_image,
-    output_path
-):
-
-    print("")
-    print("Generating Veo scene...")
-    print("")
-
-    image = types.Image.from_file(
-        location=reference_image
-    )
-
-    operation = None
-
-    for attempt in range(1, VEO_MAX_RETRIES + 1):
-
-        try:
-            print(
-                f"Veo request attempt {attempt}/{VEO_MAX_RETRIES}..."
-            )
-
-            operation = client.models.generate_videos(
-                model="veo-3.1-lite-generate-preview",
-                source=types.GenerateVideosSource(
-                    prompt=prompt,
-                    image=image
-                ),
-                config=types.GenerateVideosConfig(
-                    aspect_ratio="9:16",
-                    resolution="720p",
-                    number_of_videos=1,
-                    duration_seconds=8
-                )
-            )
-
+    for extension_number in range(VIDEO_EXTENSIONS):
+        if not previous_id:
+            print("No interaction ID returned; skipping video extension.")
             break
 
-        except Exception as error:
-
-            error_text = str(error)
-
-            print("Veo request failed.")
-            print(error_text)
-
-            if (
-                "429" not in error_text
-                and "RESOURCE_EXHAUSTED" not in error_text
-            ):
-                print("ERROR: Non-quota Veo error. Stopping.")
-                sys.exit(1)
-
-            if attempt == VEO_MAX_RETRIES:
-                print(
-                    "ERROR: Veo quota/rate limit still active "
-                    "after retries."
-                )
-                sys.exit(1)
-
-            delay = VEO_RETRY_DELAYS[attempt - 1]
-
-            print(
-                f"Quota/rate limit detected. "
-                f"Waiting {delay} seconds before retry..."
-            )
-
-            time.sleep(delay)
-
-    if operation is None:
-
-        print("ERROR: Veo generation did not start.")
-        sys.exit(1)
-
-    print("Waiting for Veo...")
-
-    while not operation.done:
-
-        time.sleep(10)
-
-        operation = client.operations.get(
-            operation
+        print(f"Extending video ({extension_number + 1}/{VIDEO_EXTENSIONS})...")
+        extension = client.interactions.create(
+            model=VIDEO_MODEL,
+            previous_interaction_id=previous_id,
+            input=(
+                "Continue this exact video seamlessly for up to 10 more seconds. "
+                "Preserve the same subject, visual identity, environment, motion logic, "
+                "lighting and audio mood. Add a fresh visual development and finish "
+                "with a satisfying, memorable, loop-friendly ending. Keep it vertical 9:16."
+            ),
+            response_format={
+                "type": "video",
+                "aspect_ratio": "9:16",
+                "resolution": "720p",
+            },
         )
 
-    if operation.error:
+        # Use the latest interaction's returned video as the final deliverable.
+        # The API's multi-turn result represents the edited/continued video state.
+        save_video_output(extension, output_path)
+        previous_id = getattr(extension, "id", None)
 
-        print("ERROR: Veo operation failed.")
-        print(operation.error)
-        sys.exit(1)
-
-    try:
-
-        video = operation.response.generated_videos[0]
-
-        client.files.download(
-            file=video.video,
-            destination=output_path
-        )
-
-    except Exception as error:
-
-        print("ERROR: Could not download generated video.")
-        print(error)
-
-        sys.exit(1)
-
-    print(
-        f"Scene saved: {output_path}"
-    )
-
-
-# ============================================================
-# REMOVE AUDIO
-# ============================================================
-
-def remove_audio(
-    input_file,
-    output_file
-):
-
-    command = [
-        "ffmpeg",
-        "-y",
-        "-i",
-        input_file,
-        "-an",
-        "-c:v",
-        "copy",
-        output_file
-    ]
-
-    result = subprocess.run(
-        command,
-        capture_output=True,
-        text=True
-    )
-
-    if result.returncode != 0:
-
-        print(
-            "ERROR: FFmpeg audio removal failed."
-        )
-
-        print(result.stderr)
-
-        sys.exit(1)
-
-
-# ============================================================
-# COMBINE SCENES
-# ============================================================
-
-def combine_videos(scene_files):
-
-    print("")
-    print("Combining scenes...")
-    print("")
-
-    concat_file = "videos.txt"
-
-    with open(
-        concat_file,
-        "w",
-        encoding="utf-8"
-    ) as file:
-
-        for scene_file in scene_files:
-
-            file.write(
-                f"file '{os.path.abspath(scene_file)}'\n"
-            )
-
-    command = [
-        "ffmpeg",
-        "-y",
-        "-f",
-        "concat",
-        "-safe",
-        "0",
-        "-i",
-        concat_file,
-        "-c:v",
-        "libx264",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "128k",
-        "-pix_fmt",
-        "yuv420p",
-        "-movflags",
-        "+faststart",
-        OUTPUT_VIDEO
-    ]
-
-    result = subprocess.run(
-        command,
-        capture_output=True,
-        text=True
-    )
-
-    if result.returncode != 0:
-
-        print(
-            "ERROR: Could not combine videos."
-        )
-
-        print(result.stderr)
-
-        sys.exit(1)
-
-    print("")
-    print(
-        f"FINAL VIDEO CREATED: {OUTPUT_VIDEO}"
-    )
-    print("")
+    print(f"Video saved: {output_path}")
 
 
 # ============================================================
@@ -782,98 +232,37 @@ def combine_videos(scene_files):
 # ============================================================
 
 def main():
+    print("=" * 58)
+    print("             AI VIRAL VIDEO BOT")
+    print("=" * 58)
 
-    print("")
-    print("========================================")
-    print("     BABY STORY BOT - QUALITY TEST")
-    print("========================================")
-    print("")
+    trends = get_google_trends()
+    print(f"Trend signals collected: {len(trends)}")
 
-    # 1. Gemini creates one connected story
-    story = generate_story()
+    idea, trends = choose_trend_brief(trends)
 
-    # 2. Select official reference image
-    reference_image = get_reference_image(
-        story
-    )
+    print("\nSelected concept:")
+    print(json.dumps(idea, ensure_ascii=False, indent=2))
 
-    print(
-        f"Reference image: {reference_image}"
-    )
+    generate_video(idea["video_prompt"], OUTPUT_VIDEO)
 
-    scene_files = []
+    metadata = {
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "trend_geo": TREND_GEO,
+        "trend_source": "Google Trends RSS (search-interest signal, not TikTok analytics)",
+        "trend_signals": trends,
+        "idea": idea,
+        "video_file": OUTPUT_VIDEO,
+        "publishing_status": "REVIEW_REQUIRED",
+    }
 
-    scenes = story["scenes"]
+    with open(OUTPUT_METADATA, "w", encoding="utf-8") as file:
+        json.dump(metadata, file, ensure_ascii=False, indent=2)
 
-    # 3. Generate only the configured number of scenes for the quality test.
-    scenes_to_generate = scenes[:NUMBER_OF_SCENES]
-
-    print(f"Generating {len(scenes_to_generate)} scene(s) for this run.")
-
-    for index, scene in enumerate(
-        scenes_to_generate
-    ):
-
-        previous_scene = ""
-
-        next_scene = ""
-
-        if index > 0:
-            previous_scene = scenes[
-                index - 1
-            ].get(
-                "description",
-                ""
-            )
-
-        if index < len(scenes_to_generate) - 1:
-            next_scene = scenes_to_generate[
-                index + 1
-            ].get(
-                "description",
-                ""
-            )
-
-        prompt = create_video_prompt(
-            story,
-            scene,
-            previous_scene,
-            next_scene
-        )
-
-        raw_file = (
-            f"scene_{index + 1}_raw.mp4"
-        )
-
-        clean_file = (
-            f"scene_{index + 1}.mp4"
-        )
-
-        generate_scene_video(
-            prompt,
-            reference_image,
-            raw_file
-        )
-
-        # Keep Veo's native audio: music, ambience, sound effects,
-        # and short natural character sounds.
-        scene_files.append(
-            raw_file
-        )
-
-    # 4. Combine everything
-    combine_videos(
-        scene_files
-    )
-
-    print("")
-    print("========================================")
-    print("DONE")
-    print("========================================")
-    print(
-        f"Output: {OUTPUT_VIDEO}"
-    )
-    print("")
+    print("\nDONE.")
+    print(f"Video: {OUTPUT_VIDEO}")
+    print(f"Metadata: {OUTPUT_METADATA}")
+    print("Publishing is intentionally not automatic. Review the video first.")
 
 
 if __name__ == "__main__":
