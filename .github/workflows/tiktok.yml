@@ -1,11 +1,7 @@
 name: AI Viral Video Bot
 
 on:
-  workflow_dispatch:
-  schedule:
-    # 06:00 UTC = 08:00 Lebanon during standard time (UTC+2).
-    # During daylight-saving time it runs at 09:00 Lebanon time.
-    - cron: "0 6 * * *"
+  workflow_dispatch
 
 permissions:
   contents: read
